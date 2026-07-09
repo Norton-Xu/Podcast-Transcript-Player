@@ -1,0 +1,1365 @@
+<!doctype html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Podcast Transcript Player</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #090a0b;
+      --panel: #101113;
+      --panel-raised: #15171a;
+      --ink: #f1f0ec;
+      --muted: #9d9a92;
+      --line: rgba(255, 255, 255, 0.09);
+      --accent: #8ccfc1;
+      --accent-strong: #d7fff5;
+      --accent-soft: rgba(140, 207, 193, 0.14);
+      --warn: #e3bd70;
+      --shadow: 0 24px 70px rgba(0, 0, 0, 0.42);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      letter-spacing: 0;
+    }
+
+    body.drawer-open {
+      overflow: hidden;
+    }
+
+    button,
+    input,
+    select,
+    textarea {
+      font: inherit;
+    }
+
+    button {
+      border: 0;
+      border-radius: 8px;
+      background: var(--accent);
+      color: #08110f;
+      min-height: 42px;
+      padding: 0 14px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    button.secondary {
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--ink);
+    }
+
+    button.ghost {
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--accent-strong);
+      border: 1px solid var(--line);
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.55;
+    }
+
+    input,
+    select,
+    textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.045);
+      color: var(--ink);
+      min-height: 42px;
+      padding: 9px 11px;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 88px;
+    }
+
+    label {
+      display: grid;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--muted);
+    }
+
+    .app {
+      min-height: 100dvh;
+      background: var(--panel);
+    }
+
+    .drawer-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      background: rgba(0, 0, 0, 0.5);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 160ms ease;
+    }
+
+    body.drawer-open .drawer-backdrop {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .sidebar {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+      min-width: 0;
+    }
+
+    .sidebar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      z-index: 30;
+      display: flex;
+      flex-direction: column;
+      width: min(420px, 92vw);
+      max-height: 100dvh;
+      overflow: hidden;
+      border-top: 0;
+      border-left: 0;
+      border-bottom: 0;
+      border-radius: 0;
+      transform: translateX(-100%);
+      transition: transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+
+    body.drawer-open .sidebar {
+      transform: translateX(0);
+    }
+
+    .brand {
+      padding: 18px 18px 14px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .brand h1 {
+      margin: 0 0 5px;
+      font-size: 22px;
+      line-height: 1.16;
+    }
+
+    .brand p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .brand-text {
+      min-width: 0;
+    }
+
+    .settings {
+      display: grid;
+      gap: 12px;
+      padding: 14px 18px 16px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .settings summary {
+      cursor: pointer;
+      color: var(--accent-strong);
+      font-weight: 800;
+      min-height: 36px;
+      display: flex;
+      align-items: center;
+    }
+
+    .settings details[open] summary {
+      margin-bottom: 10px;
+    }
+
+    .quick-actions {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: center;
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .status {
+      min-height: 20px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.35;
+    }
+
+    .status.warn {
+      color: var(--warn);
+    }
+
+    .episode-list {
+      overflow: auto;
+      padding: 8px;
+    }
+
+    .episode {
+      display: grid;
+      gap: 5px;
+      width: 100%;
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--ink);
+      text-align: left;
+      min-height: auto;
+      font-weight: 600;
+    }
+
+    .episode.active {
+      background: var(--accent-soft);
+      border-color: rgba(140, 207, 193, 0.38);
+    }
+
+    .episode-title {
+      line-height: 1.28;
+    }
+
+    .episode-meta {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .reader {
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+      min-height: 100dvh;
+      max-height: 100dvh;
+      overflow: hidden;
+      background: var(--panel);
+    }
+
+    .player {
+      display: grid;
+      gap: 10px;
+      padding: 14px clamp(12px, 3vw, 24px);
+      border-bottom: 1px solid var(--line);
+      background: rgba(16, 17, 19, 0.94);
+      backdrop-filter: blur(18px);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .player h2 {
+      margin: 0;
+      min-height: 40px;
+      display: flex;
+      align-items: center;
+      font-size: clamp(16px, 3vw, 20px);
+      line-height: 1.22;
+      font-weight: 760;
+    }
+
+    .player-head {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      gap: 10px;
+      align-items: center;
+      min-height: 40px;
+    }
+
+    #openEpisodes {
+      min-height: 40px;
+      width: 40px;
+      padding: 0;
+      border-radius: 999px;
+      font-weight: 760;
+    }
+
+    .player-meta {
+      display: none;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    audio {
+      width: 100%;
+    }
+
+    .transcript-tools {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .icon-action {
+      width: 40px;
+      min-height: 40px;
+      padding: 0;
+      border-radius: 999px;
+      display: grid;
+      place-items: center;
+    }
+
+    .icon-action.active {
+      background: var(--accent-soft);
+      color: var(--accent-strong);
+      border-color: rgba(140, 207, 193, 0.38);
+    }
+
+    .icon {
+      position: relative;
+      display: block;
+      width: 18px;
+      height: 18px;
+      color: currentColor;
+    }
+
+    .icon-menu,
+    .icon-menu::before,
+    .icon-menu::after {
+      height: 2px;
+      border-radius: 999px;
+      background: currentColor;
+    }
+
+    .icon-menu {
+      width: 18px;
+    }
+
+    .icon-menu::before,
+    .icon-menu::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      width: 18px;
+    }
+
+    .icon-menu::before {
+      top: -6px;
+    }
+
+    .icon-menu::after {
+      top: 6px;
+    }
+
+    .icon-search {
+      border: 2px solid currentColor;
+      border-radius: 50%;
+      width: 15px;
+      height: 15px;
+    }
+
+    .icon-search::after {
+      content: "";
+      position: absolute;
+      width: 8px;
+      height: 2px;
+      right: -6px;
+      bottom: -3px;
+      border-radius: 999px;
+      background: currentColor;
+      transform: rotate(45deg);
+      transform-origin: center;
+    }
+
+    .icon-follow {
+      border: 2px solid currentColor;
+      border-radius: 50%;
+    }
+
+    .icon-follow::before {
+      content: "";
+      position: absolute;
+      inset: 5px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    .icon-sync::before,
+    .icon-sync::after {
+      content: "";
+      position: absolute;
+      left: 3px;
+      right: 3px;
+      top: 8px;
+      height: 2px;
+      border-radius: 999px;
+      background: currentColor;
+    }
+
+    .icon-sync::after {
+      transform: rotate(90deg);
+    }
+
+    .icon-target {
+      border: 2px solid currentColor;
+      border-radius: 50%;
+    }
+
+    .icon-target::before,
+    .icon-target::after {
+      content: "";
+      position: absolute;
+      background: currentColor;
+      border-radius: 999px;
+    }
+
+    .icon-target::before {
+      left: 7px;
+      top: 2px;
+      width: 2px;
+      height: 12px;
+    }
+
+    .icon-target::after {
+      left: 2px;
+      top: 7px;
+      width: 12px;
+      height: 2px;
+    }
+
+    .search-panel {
+      display: none;
+    }
+
+    .search-panel.open {
+      display: block;
+    }
+
+    .search-panel input {
+      min-height: 40px;
+      border-radius: 999px;
+      padding: 0 14px;
+    }
+
+    .transcript {
+      overflow: auto;
+      padding: 18px clamp(12px, 4vw, 54px) 80px;
+      scroll-behavior: smooth;
+    }
+
+    .empty {
+      max-width: 680px;
+      color: var(--muted);
+      line-height: 1.7;
+      font-size: 16px;
+    }
+
+    .paragraph {
+      max-width: 820px;
+      margin: 0 auto 14px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      line-height: 1.72;
+      font-size: clamp(17px, 4.35vw, 19px);
+      transition: background 120ms ease, box-shadow 120ms ease;
+    }
+
+    .paragraph.current {
+      background: var(--accent-soft);
+      box-shadow: inset 4px 0 0 var(--accent);
+    }
+
+    .paragraph.search-hit {
+      outline: 2px solid rgba(148, 99, 22, 0.45);
+    }
+
+    .manual {
+      display: none;
+      gap: 10px;
+      padding-top: 4px;
+    }
+
+    .manual.open {
+      display: grid;
+    }
+
+    .small {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    @media (max-width: 850px) {
+      body {
+        background: var(--panel);
+      }
+
+      .app {
+        padding: 0;
+        gap: 0;
+      }
+
+      .reader {
+        max-height: none;
+        border-radius: 0;
+        border-left: 0;
+        border-right: 0;
+        box-shadow: none;
+      }
+
+      .reader {
+        min-height: 100dvh;
+        max-height: 100dvh;
+      }
+
+      .row {
+        grid-template-columns: 1fr;
+      }
+
+      .player-meta {
+        font-size: 12px;
+        gap: 7px;
+      }
+
+      .icon-action,
+      #openEpisodes {
+        width: 38px;
+        min-height: 38px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <div id="drawerBackdrop" class="drawer-backdrop" aria-hidden="true"></div>
+    <aside class="sidebar" aria-label="Podcast episodes">
+      <section class="brand">
+        <div class="brand-text">
+          <h1>Philosophize This!</h1>
+          <p>Episodes are sorted from oldest to newest.</p>
+        </div>
+      </section>
+
+      <section class="quick-actions">
+        <div id="status" class="status">Loading episodes...</div>
+        <button id="loadFeed" class="secondary" type="button">Refresh</button>
+      </section>
+
+      <section class="settings">
+        <details>
+          <summary>Options</summary>
+          <div class="row">
+            <label>
+              Intro offset, sec
+              <input id="introOffset" type="number" min="0" step="1" value="0">
+            </label>
+            <label>
+              Outro offset, sec
+              <input id="outroOffset" type="number" min="0" step="1" value="0">
+            </label>
+          </div>
+
+          <div class="actions">
+            <button id="toggleManual" class="secondary" type="button">Paste transcript</button>
+            <button id="clearSync" class="secondary" type="button">Clear sync</button>
+          </div>
+
+          <div id="manualBox" class="manual">
+            <label>
+              Manual transcript
+              <textarea id="manualTranscript" placeholder="Paste transcript here. Blank lines become paragraphs."></textarea>
+            </label>
+            <button id="useManual" type="button">Use pasted text</button>
+          </div>
+
+          <div class="small">Transcript links are matched from philosophizethis.org/transcripts. If the browser blocks a page, paste the transcript here.</div>
+        </details>
+      </section>
+
+      <section id="episodeList" class="episode-list" aria-label="Episodes"></section>
+    </aside>
+
+    <section class="reader" aria-label="Player and transcript">
+      <section class="player">
+        <div class="player-head">
+          <button id="openEpisodes" class="ghost icon-action" type="button" aria-label="Episodes" title="Episodes">
+            <span class="icon icon-menu" aria-hidden="true"></span>
+          </button>
+          <h2 id="episodeTitle">No episode selected</h2>
+        </div>
+        <div class="player-meta">
+          <span id="episodeDate">-</span>
+          <span id="episodeNumber">-</span>
+          <a id="sourceLink" href="#" target="_blank" rel="noreferrer" hidden>Source</a>
+          <a id="transcriptLink" href="#" target="_blank" rel="noreferrer" hidden>Transcript</a>
+        </div>
+        <audio id="audio" controls preload="metadata"></audio>
+        <div class="transcript-tools">
+          <button id="openSearch" type="button" class="ghost icon-action" aria-label="Search transcript" title="Search">
+            <span class="icon icon-search" aria-hidden="true"></span>
+          </button>
+          <button id="follow" type="button" class="ghost icon-action active" aria-label="Follow audio" aria-pressed="true" title="Follow audio">
+            <span class="icon icon-follow" aria-hidden="true"></span>
+          </button>
+        </div>
+        <div id="searchPanel" class="search-panel">
+          <input id="search" type="search" aria-label="Search transcript">
+        </div>
+      </section>
+
+      <article id="transcript" class="transcript">
+        <div class="empty">
+          Loading Philosophize This! episodes...
+        </div>
+      </article>
+    </section>
+  </main>
+
+  <script>
+    const STORAGE_KEY = "podcast-transcript-player-v1";
+    const PODCAST_RSS_URL = "https://feeds.megaphone.fm/QCD6036500916";
+    const TRANSCRIPTS_INDEX_URL = "https://www.philosophizethis.org/transcripts";
+    const TRANSCRIPT_FALLBACK_PATTERN = "https://www.philosophizethis.org/transcript/episode-{episode}-transcript";
+
+    const els = {
+      drawerBackdrop: document.getElementById("drawerBackdrop"),
+      openEpisodes: document.getElementById("openEpisodes"),
+      introOffset: document.getElementById("introOffset"),
+      outroOffset: document.getElementById("outroOffset"),
+      loadFeed: document.getElementById("loadFeed"),
+      toggleManual: document.getElementById("toggleManual"),
+      clearSync: document.getElementById("clearSync"),
+      manualBox: document.getElementById("manualBox"),
+      manualTranscript: document.getElementById("manualTranscript"),
+      useManual: document.getElementById("useManual"),
+      status: document.getElementById("status"),
+      episodeList: document.getElementById("episodeList"),
+      episodeTitle: document.getElementById("episodeTitle"),
+      episodeDate: document.getElementById("episodeDate"),
+      episodeNumber: document.getElementById("episodeNumber"),
+      sourceLink: document.getElementById("sourceLink"),
+      transcriptLink: document.getElementById("transcriptLink"),
+      audio: document.getElementById("audio"),
+      transcript: document.getElementById("transcript"),
+      openSearch: document.getElementById("openSearch"),
+      searchPanel: document.getElementById("searchPanel"),
+      search: document.getElementById("search"),
+      follow: document.getElementById("follow"),
+    };
+
+    let state = loadState();
+    let episodes = [];
+    let transcriptMap = {};
+    let transcriptIndexLoaded = false;
+    let selectedEpisode = null;
+    let paragraphs = [];
+    let paragraphTimeline = [];
+    let currentParagraphIndex = -1;
+    let lastSavedAt = 0;
+    let drawerTouchStart = null;
+
+    hydrateSettings();
+    bindEvents();
+    loadFeed();
+
+    function loadState() {
+      try {
+        return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
+      } catch {
+        return {};
+      }
+    }
+
+    function saveState(patch = {}) {
+      state = { ...state, ...patch };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+
+    function hydrateSettings() {
+      els.introOffset.value = String(state.introOffset ?? 0);
+      els.outroOffset.value = String(state.outroOffset ?? 0);
+      setFollowEnabled(state.followAudio ?? true);
+    }
+
+    function bindEvents() {
+      els.openEpisodes.addEventListener("click", openEpisodeDrawer);
+      els.drawerBackdrop.addEventListener("click", closeEpisodeDrawer);
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") closeEpisodeDrawer();
+      });
+      els.episodeList.closest(".sidebar").addEventListener("touchstart", (event) => {
+        const touch = event.touches[0];
+        drawerTouchStart = touch ? { x: touch.clientX, y: touch.clientY } : null;
+      }, { passive: true });
+      els.episodeList.closest(".sidebar").addEventListener("touchend", (event) => {
+        if (!drawerTouchStart) return;
+        const touch = event.changedTouches[0];
+        if (!touch) return;
+        const dx = touch.clientX - drawerTouchStart.x;
+        const dy = touch.clientY - drawerTouchStart.y;
+        drawerTouchStart = null;
+        if (dx < -70 && Math.abs(dx) > Math.abs(dy) * 1.4) {
+          closeEpisodeDrawer();
+        }
+      }, { passive: true });
+
+      els.loadFeed.addEventListener("click", loadFeed);
+      els.toggleManual.addEventListener("click", () => {
+        els.manualBox.classList.toggle("open");
+      });
+
+      els.clearSync.addEventListener("click", () => {
+        if (!selectedEpisode) return;
+        const syncPoints = { ...(state.syncPoints || {}) };
+        delete syncPoints[selectedEpisode.id];
+        saveState({ syncPoints });
+        currentParagraphIndex = -1;
+        updateHighlight();
+        setStatus("Cleared sync points for this episode.");
+      });
+
+      els.useManual.addEventListener("click", () => {
+        if (!selectedEpisode) {
+          setStatus("Select an episode first.", true);
+          return;
+        }
+        const text = els.manualTranscript.value.trim();
+        if (!text) {
+          setStatus("Paste transcript text first.", true);
+          return;
+        }
+        const cacheKey = transcriptCacheKey(selectedEpisode);
+        saveState({ transcriptCache: { ...(state.transcriptCache || {}), [cacheKey]: text } });
+        renderTranscript(text);
+        setStatus("Manual transcript loaded and cached.");
+      });
+
+      [els.introOffset, els.outroOffset].forEach((input) => {
+        input.addEventListener("change", () => {
+          saveState({
+            introOffset: numberValue(els.introOffset),
+            outroOffset: numberValue(els.outroOffset),
+          });
+          updateHighlight();
+        });
+      });
+
+      els.follow.addEventListener("click", () => {
+        const enabled = !isFollowEnabled();
+        setFollowEnabled(enabled);
+        saveState({ followAudio: enabled });
+      });
+
+      els.openSearch.addEventListener("click", () => {
+        els.searchPanel.classList.toggle("open");
+        if (els.searchPanel.classList.contains("open")) {
+          els.search.focus();
+        } else {
+          els.search.value = "";
+          applySearch("");
+        }
+      });
+
+      els.audio.addEventListener("timeupdate", () => {
+        updateHighlight();
+        savePlaybackProgress();
+      });
+
+      els.audio.addEventListener("loadedmetadata", restorePlaybackProgress);
+
+      els.search.addEventListener("input", () => {
+        applySearch(els.search.value.trim());
+      });
+
+    }
+
+    async function loadFeed() {
+      saveState({
+        introOffset: numberValue(els.introOffset),
+        outroOffset: numberValue(els.outroOffset),
+      });
+
+      setStatus("Loading episodes...");
+      els.loadFeed.disabled = true;
+
+      try {
+        await loadTranscriptIndex();
+        const xml = await fetchText(PODCAST_RSS_URL, "RSS");
+        episodes = sortEpisodesAscending(parseRss(xml));
+        renderEpisodes();
+        setStatus(`Loaded ${episodes.length} episodes.`);
+
+        const savedId = state.selectedEpisodeId;
+        const savedEpisode = episodes.find((episode) => episode.id === savedId);
+        if (savedEpisode) {
+          selectEpisode(savedEpisode);
+        } else {
+          const latestWithTranscript = [...episodes].reverse().find((episode) => hasKnownTranscript(episode));
+          const latestEpisode = episodes[episodes.length - 1];
+          if (latestWithTranscript || latestEpisode) selectEpisode(latestWithTranscript || latestEpisode);
+        }
+      } catch (error) {
+        setStatus(`${error.message}. If this is a CORS error, this static version needs a tiny proxy later.`, true);
+      } finally {
+        els.loadFeed.disabled = false;
+      }
+    }
+
+    function openEpisodeDrawer() {
+      document.body.classList.add("drawer-open");
+    }
+
+    function closeEpisodeDrawer() {
+      document.body.classList.remove("drawer-open");
+    }
+
+    function sortEpisodesAscending(items) {
+      return [...items].sort((left, right) => {
+        const leftNumber = Number(left.episodeNumber);
+        const rightNumber = Number(right.episodeNumber);
+        if (Number.isFinite(leftNumber) && Number.isFinite(rightNumber) && leftNumber !== rightNumber) {
+          return leftNumber - rightNumber;
+        }
+        return new Date(left.pubDate).getTime() - new Date(right.pubDate).getTime();
+      });
+    }
+
+    async function loadTranscriptIndex() {
+      try {
+        const html = await fetchText(TRANSCRIPTS_INDEX_URL, "transcript index");
+        transcriptMap = parseTranscriptIndex(html);
+        transcriptIndexLoaded = true;
+      } catch {
+        transcriptMap = {};
+        transcriptIndexLoaded = false;
+      }
+    }
+
+    function parseTranscriptIndex(html) {
+      if (looksLikeReaderText(html)) {
+        return parseReaderTranscriptIndex(html);
+      }
+
+      const doc = new DOMParser().parseFromString(html, "text/html");
+      const map = {};
+      Array.from(doc.querySelectorAll("a[href]")).forEach((link) => {
+        const label = normalizeText(link.textContent);
+        const episodeNumber = extractEpisodeNumber(label);
+        if (!episodeNumber || !/transcript/i.test(label)) return;
+        const href = new URL(link.getAttribute("href"), TRANSCRIPTS_INDEX_URL).href;
+        map[episodeNumber] = href;
+      });
+      return map;
+    }
+
+    function parseReaderTranscriptIndex(text) {
+      const map = {};
+      const linkPattern = /\[([^\]]*Episode\s*#?\s*(\d{1,4})\s*-\s*Transcript[^\]]*)\]\((https?:\/\/[^)]+)\)/gi;
+      let match;
+      while ((match = linkPattern.exec(text)) !== null) {
+        map[match[2]] = match[3];
+      }
+      return map;
+    }
+
+    function parseRss(xml) {
+      const doc = new DOMParser().parseFromString(xml, "application/xml");
+      const parserError = doc.querySelector("parsererror");
+      if (parserError) throw new Error("Could not parse RSS XML");
+
+      return Array.from(doc.querySelectorAll("item")).map((item, index) => {
+        const title = textOf(item, "title") || `Episode ${index + 1}`;
+        const guid = textOf(item, "guid");
+        const link = textOf(item, "link");
+        const enclosure = item.querySelector("enclosure[url]");
+        const audioUrl = enclosure?.getAttribute("url") || findAudioUrl(item);
+        const pubDate = textOf(item, "pubDate");
+        const episodeNumber = extractEpisodeNumber(title) || extractEpisodeNumber(link) || extractEpisodeNumber(guid);
+        const displayTitle = formatEpisodeTitle(title, episodeNumber);
+        const id = guid || link || audioUrl || `${title}-${index}`;
+        return {
+          id,
+          title,
+          displayTitle,
+          link,
+          audioUrl,
+          pubDate,
+          episodeNumber,
+          index,
+        };
+      }).filter((episode) => episode.audioUrl);
+    }
+
+    function textOf(root, selector) {
+      return root.querySelector(selector)?.textContent?.trim() || "";
+    }
+
+    function findAudioUrl(item) {
+      const text = item.textContent || "";
+      return text.match(/https?:\/\/[^\s<>"']+\.(mp3|m4a|aac)(\?[^\s<>"']*)?/i)?.[0] || "";
+    }
+
+    function extractEpisodeNumber(value = "") {
+      const patterns = [
+        /\b(?:episode|ep\.?)\s*#?\s*(\d{1,4})\b/i,
+        /\b#\s*(\d{1,4})\b/,
+        /\b(\d{1,4})\b/,
+      ];
+      for (const pattern of patterns) {
+        const match = String(value).match(pattern);
+        if (match) return match[1];
+      }
+      return "";
+    }
+
+    function formatEpisodeTitle(title, episodeNumber) {
+      let cleaned = normalizeText(title)
+        .replace(/\u2026/g, " ")
+        .replace(/\.{2,}/g, " ")
+        .replace(/\s+[-:]\s*$/g, "")
+        .trim();
+
+      if (episodeNumber) {
+        const prefix = new RegExp(`^episode\\s*#?\\s*${episodeNumber}\\s*[-:.]*\\s*`, "i");
+        cleaned = cleaned.replace(prefix, "").trim();
+      }
+
+      cleaned = cleaned.replace(/^\s*[-:]\s*/, "").replace(/\s+/g, " ").trim();
+      return episodeNumber && cleaned ? `${episodeNumber} - ${cleaned}` : cleaned || title;
+    }
+
+    function renderEpisodes() {
+      els.episodeList.innerHTML = "";
+      if (!episodes.length) {
+        els.episodeList.innerHTML = `<div class="empty">No playable audio episodes were found in this RSS feed.</div>`;
+        return;
+      }
+
+      const fragment = document.createDocumentFragment();
+      episodes.forEach((episode) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "episode";
+        button.dataset.id = episode.id;
+        button.innerHTML = `
+          <span class="episode-title"></span>
+          <span class="episode-meta"></span>
+        `;
+        button.querySelector(".episode-title").textContent = episode.displayTitle || episode.title;
+        button.querySelector(".episode-meta").textContent = [
+          episode.episodeNumber ? `Episode ${episode.episodeNumber}` : "",
+          formatDate(episode.pubDate),
+          hasKnownTranscript(episode) ? "Transcript" : "Audio only",
+        ].filter(Boolean).join(" · ") || "Audio available";
+        button.addEventListener("click", () => selectEpisode(episode));
+        fragment.appendChild(button);
+      });
+      els.episodeList.appendChild(fragment);
+    }
+
+    async function selectEpisode(episode) {
+      selectedEpisode = episode;
+      currentParagraphIndex = -1;
+      saveState({ selectedEpisodeId: episode.id });
+
+      document.querySelectorAll(".episode").forEach((button) => {
+        button.classList.toggle("active", button.dataset.id === episode.id);
+      });
+
+      els.episodeTitle.textContent = episode.displayTitle || episode.title;
+      els.episodeDate.textContent = formatDate(episode.pubDate) || "No date";
+      els.episodeNumber.textContent = episode.episodeNumber ? `Episode ${episode.episodeNumber}` : "No episode number found";
+      setOptionalLink(els.sourceLink, episode.link);
+      els.audio.src = episode.audioUrl;
+      els.audio.load();
+      els.search.value = "";
+      els.searchPanel.classList.remove("open");
+      applySearch("");
+      closeEpisodeDrawer();
+
+      const transcriptUrl = buildTranscriptUrl(episode);
+      setOptionalLink(els.transcriptLink, transcriptUrl);
+      renderEmpty("Loading transcript...");
+
+      const cacheKey = transcriptCacheKey(episode);
+      const cachedText = state.transcriptCache?.[cacheKey];
+      if (cachedText) {
+        renderTranscript(cachedText);
+        setStatus("Loaded cached transcript.");
+        return;
+      }
+
+      if (!transcriptUrl) {
+        renderEmpty("No transcript page matched this episode. Paste transcript text from Options.");
+        setStatus("No transcript page matched this episode.", true);
+        return;
+      }
+
+      try {
+        setStatus("Loading transcript...");
+        const html = await fetchText(transcriptUrl, "transcript");
+        const text = extractReadableText(html);
+        if (!text) throw new Error("No readable transcript text found");
+        saveState({ transcriptCache: { ...(state.transcriptCache || {}), [cacheKey]: text } });
+        renderTranscript(text);
+        setStatus("Transcript loaded and cached.");
+      } catch (error) {
+        renderEmpty("Could not load transcript automatically. You can paste it manually from Options.");
+        setStatus(`${error.message}. Browser CORS may be blocking the transcript page.`, true);
+      }
+    }
+
+    function buildTranscriptUrl(episode) {
+      if (!episode.episodeNumber) return "";
+      if (transcriptMap[episode.episodeNumber]) return transcriptMap[episode.episodeNumber];
+      if (transcriptIndexLoaded) return "";
+      return TRANSCRIPT_FALLBACK_PATTERN.replaceAll("{episode}", episode.episodeNumber);
+    }
+
+    function hasKnownTranscript(episode) {
+      return Boolean(episode.episodeNumber && transcriptMap[episode.episodeNumber]);
+    }
+
+    async function fetchText(url, label) {
+      const urls = [
+        url,
+        `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+        `https://r.jina.ai/http://${url}`,
+      ];
+
+      let lastError = null;
+      for (const requestUrl of urls) {
+        try {
+          const response = await fetch(requestUrl);
+          if (!response.ok) throw new Error(`${label} request failed: ${response.status}`);
+          return await response.text();
+        } catch (error) {
+          lastError = error;
+        }
+      }
+
+      throw lastError || new Error(`${label} request failed`);
+    }
+
+    function setOptionalLink(element, href) {
+      if (!href) {
+        element.hidden = true;
+        element.removeAttribute("href");
+        return;
+      }
+      element.hidden = false;
+      element.href = href;
+    }
+
+    function transcriptCacheKey(episode) {
+      return episode.id || episode.title;
+    }
+
+    function extractReadableText(html) {
+      if (looksLikeReaderText(html)) {
+        return extractReaderText(html);
+      }
+
+      const doc = new DOMParser().parseFromString(html, "text/html");
+      doc.querySelectorAll("script, style, noscript, nav, header, footer, iframe, form").forEach((node) => node.remove());
+      const root = doc.querySelector("article") || doc.querySelector("main") || doc.body;
+      const textBlocks = Array.from(root.querySelectorAll("p, li, blockquote"))
+        .map((node) => normalizeText(node.textContent))
+        .filter((text) => text.length > 25);
+
+      const unique = [];
+      const seen = new Set();
+      textBlocks.forEach((text) => {
+        const key = text.slice(0, 120);
+        if (!seen.has(key)) {
+          seen.add(key);
+          unique.push(text);
+        }
+      });
+
+      return unique.join("\n\n");
+    }
+
+    function looksLikeReaderText(text = "") {
+      return /^Title:\s/m.test(text) && /\nMarkdown Content:\n/.test(text);
+    }
+
+    function extractReaderText(text) {
+      const marker = "Markdown Content:";
+      const markerIndex = text.indexOf(marker);
+      const content = markerIndex >= 0 ? text.slice(markerIndex + marker.length) : text;
+      return content
+        .split(/\n{2,}/)
+        .map((paragraph) => normalizeText(paragraph.replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")))
+        .filter((paragraph) => paragraph.length > 25)
+        .join("\n\n");
+    }
+
+    function renderTranscript(text) {
+      paragraphs = text.split(/\n{2,}/)
+        .map(normalizeText)
+        .filter(Boolean);
+      paragraphTimeline = buildParagraphTimeline(paragraphs);
+
+      if (!paragraphs.length) {
+        renderEmpty("Transcript is empty.");
+        return;
+      }
+
+      const fragment = document.createDocumentFragment();
+      paragraphs.forEach((paragraph, index) => {
+        const p = document.createElement("p");
+        p.className = "paragraph";
+        p.dataset.index = String(index);
+        p.textContent = paragraph;
+        fragment.appendChild(p);
+      });
+      els.transcript.innerHTML = "";
+      els.transcript.appendChild(fragment);
+      updateHighlight();
+    }
+
+    function renderEmpty(message) {
+      paragraphs = [];
+      paragraphTimeline = [];
+      currentParagraphIndex = -1;
+      els.transcript.innerHTML = "";
+      const div = document.createElement("div");
+      div.className = "empty";
+      div.textContent = message;
+      els.transcript.appendChild(div);
+    }
+
+    function updateHighlight() {
+      if (!paragraphs.length || !Number.isFinite(els.audio.duration) || els.audio.duration <= 0) return;
+
+      const textProgress = progressForCurrentTime();
+      const nextIndex = paragraphIndexForProgress(textProgress);
+
+      if (nextIndex === currentParagraphIndex) return;
+
+      const previous = els.transcript.querySelector(".paragraph.current");
+      if (previous) previous.classList.remove("current");
+
+      currentParagraphIndex = nextIndex;
+      const current = paragraphElement(nextIndex);
+      if (current) current.classList.add("current");
+
+      if (isFollowEnabled()) {
+        scrollToParagraph(nextIndex, false);
+      }
+    }
+
+    function setFollowEnabled(enabled) {
+      els.follow.classList.toggle("active", enabled);
+      els.follow.setAttribute("aria-pressed", String(enabled));
+    }
+
+    function isFollowEnabled() {
+      return els.follow.classList.contains("active");
+    }
+
+    function buildParagraphTimeline(items) {
+      const weights = items.map((paragraph) => Math.max(40, paragraph.length));
+      const total = weights.reduce((sum, weight) => sum + weight, 0) || 1;
+      let cursor = 0;
+      return weights.map((weight) => {
+        const start = cursor / total;
+        cursor += weight;
+        return {
+          start,
+          end: cursor / total,
+          midpoint: (cursor - weight / 2) / total,
+        };
+      });
+    }
+
+    function progressForCurrentTime() {
+      const intro = numberValue(els.introOffset);
+      const outro = numberValue(els.outroOffset);
+      const contentDuration = Math.max(1, els.audio.duration - intro - outro);
+      const contentTime = Math.min(contentDuration, Math.max(0, els.audio.currentTime - intro));
+      const timeProgress = contentTime / contentDuration;
+      const syncPoints = getSyncPoints();
+
+      if (!syncPoints.length) return timeProgress;
+
+      const anchors = [
+        { timeProgress: 0, textProgress: 0 },
+        ...syncPoints.map((point) => ({
+          timeProgress: Math.min(1, Math.max(0, (point.time - intro) / contentDuration)),
+          textProgress: paragraphProgress(point.index),
+        })),
+        { timeProgress: 1, textProgress: 1 },
+      ].sort((a, b) => a.timeProgress - b.timeProgress);
+
+      for (let index = 0; index < anchors.length - 1; index += 1) {
+        const left = anchors[index];
+        const right = anchors[index + 1];
+        if (timeProgress >= left.timeProgress && timeProgress <= right.timeProgress) {
+          const span = Math.max(0.0001, right.timeProgress - left.timeProgress);
+          const local = (timeProgress - left.timeProgress) / span;
+          return left.textProgress + local * (right.textProgress - left.textProgress);
+        }
+      }
+
+      return timeProgress;
+    }
+
+    function paragraphIndexForProgress(progress) {
+      if (!paragraphTimeline.length) return 0;
+      const clamped = Math.min(1, Math.max(0, progress));
+      const found = paragraphTimeline.findIndex((entry) => clamped >= entry.start && clamped < entry.end);
+      return found >= 0 ? found : paragraphTimeline.length - 1;
+    }
+
+    function paragraphProgress(index) {
+      const entry = paragraphTimeline[Math.min(paragraphTimeline.length - 1, Math.max(0, index))];
+      return entry ? entry.midpoint : 0;
+    }
+
+    function syncHere() {
+      if (!selectedEpisode || !paragraphs.length || !Number.isFinite(els.audio.currentTime)) return;
+      const index = centeredParagraphIndex();
+      const nextPoint = { time: els.audio.currentTime, index };
+      const syncPoints = [...getSyncPoints(), nextPoint]
+        .sort((a, b) => a.time - b.time)
+        .filter((point, pointIndex, all) => {
+          const next = all[pointIndex + 1];
+          return !next || Math.abs(next.time - point.time) > 3;
+        });
+
+      saveState({
+        syncPoints: {
+          ...(state.syncPoints || {}),
+          [selectedEpisode.id]: syncPoints,
+        },
+      });
+
+      currentParagraphIndex = -1;
+      updateHighlight();
+      setStatus(`Synced this time to paragraph ${index + 1}.`);
+    }
+
+    function getSyncPoints() {
+      if (!selectedEpisode) return [];
+      return Array.isArray(state.syncPoints?.[selectedEpisode.id]) ? state.syncPoints[selectedEpisode.id] : [];
+    }
+
+    function centeredParagraphIndex() {
+      const centerY = els.transcript.getBoundingClientRect().top + els.transcript.clientHeight / 2;
+      let closestIndex = currentParagraphIndex >= 0 ? currentParagraphIndex : 0;
+      let closestDistance = Infinity;
+
+      els.transcript.querySelectorAll(".paragraph").forEach((node) => {
+        const rect = node.getBoundingClientRect();
+        const nodeCenter = rect.top + rect.height / 2;
+        const distance = Math.abs(nodeCenter - centerY);
+        if (distance < closestDistance) {
+          closestDistance = distance;
+          closestIndex = Number(node.dataset.index);
+        }
+      });
+
+      return closestIndex;
+    }
+
+    function scrollToParagraph(index, force) {
+      const element = paragraphElement(index);
+      if (!element) return;
+      if (!force && isElementComfortablyVisible(element, els.transcript)) return;
+      element.scrollIntoView({ block: "center", behavior: "smooth" });
+    }
+
+    function paragraphElement(index) {
+      return els.transcript.querySelector(`.paragraph[data-index="${index}"]`);
+    }
+
+    function isElementComfortablyVisible(element, container) {
+      const elementRect = element.getBoundingClientRect();
+      const containerRect = container.getBoundingClientRect();
+      const padding = Math.min(180, containerRect.height * 0.25);
+      return elementRect.top >= containerRect.top + padding && elementRect.bottom <= containerRect.bottom - padding;
+    }
+
+    function savePlaybackProgress() {
+      if (!selectedEpisode) return;
+      const now = Date.now();
+      if (now - lastSavedAt < 1500) return;
+      lastSavedAt = now;
+      saveState({
+        playback: {
+          ...(state.playback || {}),
+          [selectedEpisode.id]: els.audio.currentTime,
+        },
+      });
+    }
+
+    function restorePlaybackProgress() {
+      if (!selectedEpisode) return;
+      const savedTime = state.playback?.[selectedEpisode.id];
+      if (Number.isFinite(savedTime) && savedTime > 0 && savedTime < els.audio.duration - 5) {
+        els.audio.currentTime = savedTime;
+      }
+    }
+
+    function applySearch(query) {
+      els.transcript.querySelectorAll(".paragraph.search-hit").forEach((node) => node.classList.remove("search-hit"));
+      if (!query) return;
+
+      const lower = query.toLowerCase();
+      const firstHit = Array.from(els.transcript.querySelectorAll(".paragraph")).find((node) => {
+        const hit = node.textContent.toLowerCase().includes(lower);
+        if (hit) node.classList.add("search-hit");
+        return hit;
+      });
+
+      if (firstHit) {
+        firstHit.scrollIntoView({ block: "center", behavior: "smooth" });
+      }
+    }
+
+    function setStatus(message, warn = false) {
+      els.status.textContent = message;
+      els.status.classList.toggle("warn", warn);
+    }
+
+    function normalizeText(text = "") {
+      return text.replace(/\s+/g, " ").trim();
+    }
+
+    function numberValue(input) {
+      const value = Number(input.value);
+      return Number.isFinite(value) && value >= 0 ? value : 0;
+    }
+
+    function formatDate(value) {
+      if (!value) return "";
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return "";
+      return date.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+    }
+  </script>
+</body>
+</html>
