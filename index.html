@@ -477,8 +477,8 @@
     }
 
     .skip-button {
-      width: 62px;
-      min-height: 62px;
+      width: 56px;
+      min-height: 56px;
       padding: 0;
       border: 0;
       border-radius: 50%;
@@ -518,16 +518,32 @@
       display: block;
     }
 
-    .skip-icon {
+    .seek-icon {
+      position: relative;
       display: block;
-      width: 36px;
-      height: 36px;
+      width: 32px;
+      height: 32px;
+    }
+
+    .seek-icon svg {
+      display: block;
+      width: 32px;
+      height: 32px;
       fill: currentColor;
       overflow: visible;
     }
 
-    .skip-icon.back {
-      transform: rotate(180deg);
+    .seek-count {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      color: currentColor;
+      font-size: 9px;
+      font-weight: 800;
+      line-height: 1;
+      letter-spacing: 0;
+      transform: translateY(0.5px);
     }
 
     .progress-area {
@@ -757,9 +773,13 @@
       box-shadow: none;
     }
 
-    .paragraph.search-hit {
-      outline: 0;
-      background: rgba(255, 255, 255, 0.1);
+    mark.search-match {
+      padding: 0 1px;
+      border-radius: 4px;
+      background: rgba(244, 201, 111, 0.88);
+      color: #17130e;
+      box-decoration-break: clone;
+      -webkit-box-decoration-break: clone;
     }
 
     .manual {
@@ -933,7 +953,7 @@
       <section class="now-playing" aria-label="Playback controls">
         <div class="transport">
           <button id="back15" class="skip-button" type="button" aria-label="Back 15 seconds" title="Back 15 seconds">
-            <svg class="skip-icon back" viewBox="0 0 256 256" aria-hidden="true"><path d="M232,71.84V184.16a15.92,15.92,0,0,1-24.48,13.34L128,146.86v37.3a15.92,15.92,0,0,1-24.48,13.34L15.33,141.34a15.8,15.8,0,0,1,0-26.68L103.52,58.5A15.91,15.91,0,0,1,128,71.84v37.3L207.52,58.5A15.91,15.91,0,0,1,232,71.84Z"></path></svg>
+            <span class="seek-icon" aria-hidden="true"><svg viewBox="0 0 256 256"><path d="M224,128a96,96,0,0,1-94.71,96H128A95.38,95.38,0,0,1,62.1,197.8a8,8,0,0,1,11-11.63A80,80,0,1,0,71.43,71.39a3.07,3.07,0,0,1-.26.25L44.59,96H72a8,8,0,0,1,0,16H24a8,8,0,0,1-8-8V56a8,8,0,0,1,16,0V85.8L60.25,60A96,96,0,0,1,224,128Z"></path></svg><span class="seek-count">15</span></span>
           </button>
           <button id="playPause" class="play-button" type="button" aria-label="Play" title="Play">
             <svg class="play-icon" viewBox="0 0 256 256" aria-hidden="true">
@@ -942,7 +962,7 @@
             </svg>
           </button>
           <button id="forward15" class="skip-button" type="button" aria-label="Forward 15 seconds" title="Forward 15 seconds">
-            <svg class="skip-icon forward" viewBox="0 0 256 256" aria-hidden="true"><path d="M256,128a15.76,15.76,0,0,1-7.33,13.34L160.48,197.5A15.91,15.91,0,0,1,136,184.16v-37.3L56.48,197.5A15.91,15.91,0,0,1,32,184.16V71.84A15.91,15.91,0,0,1,56.48,58.5L136,109.14V71.84A15.91,15.91,0,0,1,160.48,58.5l88.19,56.16A15.76,15.76,0,0,1,256,128Z"></path></svg>
+            <span class="seek-icon" aria-hidden="true"><svg viewBox="0 0 256 256"><path d="M240,56v48a8,8,0,0,1-8,8H184a8,8,0,0,1,0-16H211.4L184.81,71.64l-.25-.24a80,80,0,1,0-1.67,114.78,8,8,0,0,1,11,11.63A95.44,95.44,0,0,1,128,224h-1.32A96,96,0,1,1,195.75,60L224,85.8V56a8,8,0,1,1,16,0Z"></path></svg><span class="seek-count">15</span></span>
           </button>
         </div>
         <div class="progress-area">
@@ -1788,14 +1808,34 @@
     }
 
     function applySearch(query) {
-      els.transcript.querySelectorAll(".paragraph.search-hit").forEach((node) => node.classList.remove("search-hit"));
-      if (!query) return;
+      const needle = query.toLocaleLowerCase();
+      let firstHit = null;
 
-      const lower = query.toLowerCase();
-      const firstHit = Array.from(els.transcript.querySelectorAll(".paragraph")).find((node) => {
-        const hit = node.textContent.toLowerCase().includes(lower);
-        if (hit) node.classList.add("search-hit");
-        return hit;
+      els.transcript.querySelectorAll(".paragraph").forEach((node) => {
+        const index = Number(node.dataset.index);
+        const text = paragraphs[index] || "";
+        const lower = text.toLocaleLowerCase();
+        const fragment = document.createDocumentFragment();
+
+        if (!needle) {
+          fragment.append(text);
+        } else {
+          let cursor = 0;
+          let matchIndex = lower.indexOf(needle, cursor);
+          while (matchIndex !== -1) {
+            fragment.append(text.slice(cursor, matchIndex));
+            const mark = document.createElement("mark");
+            mark.className = "search-match";
+            mark.textContent = text.slice(matchIndex, matchIndex + query.length);
+            fragment.appendChild(mark);
+            cursor = matchIndex + query.length;
+            matchIndex = lower.indexOf(needle, cursor);
+          }
+          fragment.append(text.slice(cursor));
+          if (cursor > 0 && !firstHit) firstHit = node;
+        }
+
+        node.replaceChildren(fragment);
       });
 
       if (firstHit) {
