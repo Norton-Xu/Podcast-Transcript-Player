@@ -117,9 +117,8 @@
     }
 
     .sidebar {
-      background: var(--panel);
-      border: 1px solid var(--line);
-      box-shadow: var(--shadow);
+      background: rgba(20, 21, 24, 0.96);
+      box-shadow: 18px 0 54px rgba(0, 0, 0, 0.4);
       min-width: 0;
     }
 
@@ -131,37 +130,37 @@
       z-index: 30;
       display: flex;
       flex-direction: column;
-      width: min(420px, 92vw);
+      width: min(390px, 88vw);
       max-height: 100dvh;
       overflow: hidden;
-      border-top: 0;
-      border-left: 0;
-      border-bottom: 0;
+      border: 0;
       border-radius: 0;
       transform: translateX(-100%);
-      transition: transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+      backdrop-filter: blur(26px) saturate(145%);
+      transition: transform 280ms cubic-bezier(0.32, 0.72, 0, 1);
     }
 
     body.drawer-open .sidebar {
       transform: translateX(0);
     }
 
+    .drawer-nav {
+      min-height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: max(10px, env(safe-area-inset-top)) 12px 8px 20px;
+    }
+
     .brand {
-      padding: 18px 18px 14px;
-      border-bottom: 1px solid var(--line);
+      min-width: 0;
     }
 
     .brand h1 {
-      margin: 0 0 5px;
-      font-size: 22px;
-      line-height: 1.16;
-    }
-
-    .brand p {
       margin: 0;
-      color: var(--muted);
-      font-size: 13px;
-      line-height: 1.45;
+      font-size: 17px;
+      line-height: 1.25;
+      font-weight: 720;
     }
 
     .brand-text {
@@ -170,50 +169,160 @@
 
     .settings {
       display: grid;
-      gap: 12px;
-      padding: 14px 18px 16px;
-      border-bottom: 1px solid var(--line);
+      gap: 8px;
+      padding: 6px 16px 12px;
+      border-bottom: 0;
+    }
+
+    .settings details {
+      overflow: hidden;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.075);
     }
 
     .settings summary {
       cursor: pointer;
-      color: var(--accent-strong);
-      font-weight: 800;
-      min-height: 36px;
+      color: rgba(255, 255, 255, 0.94);
+      font-weight: 720;
+      min-height: 44px;
+      padding: 0 15px;
       display: flex;
       align-items: center;
+      justify-content: space-between;
+      list-style: none;
+    }
+
+    .settings summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .settings summary .symbol {
+      width: 18px;
+      height: 18px;
+      color: rgba(255, 255, 255, 0.52);
+      transition: transform 160ms ease;
     }
 
     .settings details[open] summary {
-      margin-bottom: 10px;
+      box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.075);
+    }
+
+    .settings details[open] summary .symbol {
+      transform: rotate(180deg);
+    }
+
+    .settings details > *:not(summary) {
+      margin-left: 12px;
+      margin-right: 12px;
+    }
+
+    .settings details > *:last-child {
+      margin-bottom: 12px;
+    }
+
+    .settings label {
+      min-height: 46px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 86px;
+      align-items: center;
+      gap: 12px;
+      color: rgba(255, 255, 255, 0.78);
+      font-weight: 580;
+      box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.065);
+    }
+
+    .settings input[type="number"] {
+      min-height: 36px;
+      padding: 0;
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      text-align: right;
+      color: rgba(255, 255, 255, 0.92);
+      font-variant-numeric: tabular-nums;
+      outline: 0;
+    }
+
+    .settings input[type="number"]:focus,
+    .settings input[type="number"]:focus-visible {
+      outline: 0;
+      box-shadow: none;
     }
 
     .quick-actions {
-      display: grid;
-      grid-template-columns: 1fr auto;
-      gap: 10px;
-      align-items: center;
-      padding: 14px 18px;
-      border-bottom: 1px solid var(--line);
+      display: flex;
+      justify-content: flex-end;
+      padding: 0;
     }
 
     .row {
       display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
+      grid-template-columns: 1fr;
+      gap: 0;
     }
 
     .actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
+      display: grid;
+      gap: 0;
+      margin-top: 2px;
+      margin-bottom: 4px;
+    }
+
+    .settings .actions button {
+      min-height: 46px;
+      padding: 0;
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      color: rgba(255, 255, 255, 0.88);
+      text-align: left;
+      font-weight: 580;
+      box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.065);
+    }
+
+    .settings textarea {
+      min-height: 112px;
+      border: 0;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.065);
+      outline: 0;
+    }
+
+    .settings textarea:focus,
+    .settings textarea:focus-visible {
+      outline: 0;
+      box-shadow: none;
+    }
+
+    .settings #useManual {
+      border: 0;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.12);
+      color: rgba(255, 255, 255, 0.94);
     }
 
     .status {
-      min-height: 20px;
-      color: var(--muted);
-      font-size: 13px;
-      line-height: 1.35;
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    .quick-actions button {
+      width: 40px;
+      min-height: 40px;
+      padding: 0;
+      border: 0;
+      border-radius: 50%;
+      background: transparent;
+      color: rgba(255, 255, 255, 0.86);
+      display: grid;
+      place-items: center;
     }
 
     .status.warn {
@@ -222,26 +331,45 @@
 
     .episode-list {
       overflow: auto;
-      padding: 8px;
+      margin: 0 16px 16px;
+      padding: 0;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.075);
+      scrollbar-width: none;
+    }
+
+    .episode-list::-webkit-scrollbar {
+      display: none;
     }
 
     .episode {
       display: grid;
-      gap: 5px;
+      gap: 3px;
       width: 100%;
-      padding: 12px;
-      border-radius: 8px;
-      border: 1px solid transparent;
+      padding: 12px 15px;
+      border-radius: 0;
+      border: 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.07);
       background: transparent;
       color: var(--ink);
       text-align: left;
-      min-height: auto;
-      font-weight: 600;
+      min-height: 56px;
+      font-weight: 590;
+      transition: background-color 160ms ease;
+    }
+
+    .episode:last-child {
+      border-bottom: 0;
+    }
+
+    .episode:active {
+      background: rgba(255, 255, 255, 0.1);
     }
 
     .episode.active {
-      background: var(--accent-soft);
-      border-color: rgba(140, 207, 193, 0.38);
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--ink);
+      box-shadow: none;
     }
 
     .episode-title {
@@ -256,20 +384,22 @@
 
     .reader {
       display: grid;
-      grid-template-rows: auto minmax(0, 1fr);
+      grid-template-rows: auto minmax(0, 1fr) auto;
       min-height: 100dvh;
       max-height: 100dvh;
       overflow: hidden;
-      background: var(--panel);
+      background:
+        radial-gradient(circle at 78% 78%, rgba(102, 42, 64, 0.34), transparent 40%),
+        radial-gradient(circle at 18% 8%, rgba(126, 120, 116, 0.18), transparent 38%),
+        linear-gradient(180deg, #151516, #0d0d0f 58%, #151113);
     }
 
     .player {
-      display: grid;
-      gap: 10px;
-      padding: 14px clamp(12px, 3vw, 24px);
-      border-bottom: 1px solid var(--line);
-      background: rgba(16, 17, 19, 0.94);
-      backdrop-filter: blur(18px);
+      display: block;
+      padding: 12px clamp(12px, 3vw, 20px);
+      border-bottom: 0;
+      background: linear-gradient(180deg, rgba(14, 15, 18, 0.74), rgba(14, 15, 18, 0.18));
+      backdrop-filter: blur(22px);
       position: sticky;
       top: 0;
       z-index: 10;
@@ -277,12 +407,13 @@
 
     .player h2 {
       margin: 0;
-      min-height: 40px;
+      min-width: 0;
+      min-height: 42px;
       display: flex;
       align-items: center;
-      font-size: clamp(16px, 3vw, 20px);
-      line-height: 1.22;
-      font-weight: 760;
+      font-size: clamp(17px, 3vw, 21px);
+      line-height: 1.2;
+      font-weight: 780;
     }
 
     .player-head {
@@ -290,7 +421,7 @@
       grid-template-columns: auto minmax(0, 1fr);
       gap: 10px;
       align-items: center;
-      min-height: 40px;
+      min-height: 42px;
     }
 
     #openEpisodes {
@@ -311,161 +442,297 @@
     }
 
     audio {
-      width: 100%;
+      display: none;
     }
 
-    .transcript-tools {
+    .now-playing {
+      display: grid;
+      gap: 18px;
+      padding: 20px clamp(24px, 6vw, 52px) max(24px, calc(20px + env(safe-area-inset-bottom)));
+      border-top: 0;
+      background: linear-gradient(180deg, rgba(16, 16, 18, 0), rgba(11, 10, 12, 0.58) 22%, rgba(11, 10, 12, 0.72));
+      box-shadow: none;
+      backdrop-filter: blur(26px);
+      z-index: 9;
+    }
+
+    .transport {
       display: flex;
-      justify-content: flex-end;
-      gap: 8px;
+      justify-content: center;
+      gap: clamp(34px, 11vw, 72px);
       align-items: center;
     }
 
-    .icon-action {
-      width: 40px;
-      min-height: 40px;
+    .play-button {
+      width: 76px;
+      min-height: 76px;
       padding: 0;
+      border: 0;
       border-radius: 999px;
+      color: rgba(255, 255, 255, 0.96);
+      background: transparent;
+      box-shadow: none;
       display: grid;
       place-items: center;
     }
 
-    .icon-action.active {
-      background: var(--accent-soft);
-      color: var(--accent-strong);
-      border-color: rgba(140, 207, 193, 0.38);
-    }
-
-    .icon {
-      position: relative;
-      display: block;
-      width: 18px;
-      height: 18px;
-      color: currentColor;
-    }
-
-    .icon-menu,
-    .icon-menu::before,
-    .icon-menu::after {
-      height: 2px;
-      border-radius: 999px;
-      background: currentColor;
-    }
-
-    .icon-menu {
-      width: 18px;
-    }
-
-    .icon-menu::before,
-    .icon-menu::after {
-      content: "";
-      position: absolute;
-      left: 0;
-      width: 18px;
-    }
-
-    .icon-menu::before {
-      top: -6px;
-    }
-
-    .icon-menu::after {
-      top: 6px;
-    }
-
-    .icon-search {
-      border: 2px solid currentColor;
+    .skip-button {
+      width: 62px;
+      min-height: 62px;
+      padding: 0;
+      border: 0;
       border-radius: 50%;
-      width: 15px;
-      height: 15px;
+      color: rgba(255, 255, 255, 0.92);
+      background: transparent;
+      display: grid;
+      place-items: center;
+      font-size: 0;
+      box-shadow: none;
     }
 
-    .icon-search::after {
-      content: "";
-      position: absolute;
-      width: 8px;
-      height: 2px;
-      right: -6px;
-      bottom: -3px;
-      border-radius: 999px;
-      background: currentColor;
-      transform: rotate(45deg);
-      transform-origin: center;
+    .play-button:active {
+      transform: scale(0.96);
     }
 
-    .icon-follow {
-      border: 2px solid currentColor;
-      border-radius: 50%;
+    .skip-button:active {
+      transform: scale(0.94);
+      background: transparent;
     }
 
-    .icon-follow::before {
-      content: "";
-      position: absolute;
-      inset: 5px;
-      border-radius: 50%;
-      background: currentColor;
+    .play-icon {
+      width: 38px;
+      height: 38px;
+      fill: currentColor;
+      overflow: visible;
     }
 
-    .icon-sync::before,
-    .icon-sync::after {
-      content: "";
-      position: absolute;
-      left: 3px;
-      right: 3px;
-      top: 8px;
-      height: 2px;
-      border-radius: 999px;
-      background: currentColor;
-    }
-
-    .icon-sync::after {
-      transform: rotate(90deg);
-    }
-
-    .icon-target {
-      border: 2px solid currentColor;
-      border-radius: 50%;
-    }
-
-    .icon-target::before,
-    .icon-target::after {
-      content: "";
-      position: absolute;
-      background: currentColor;
-      border-radius: 999px;
-    }
-
-    .icon-target::before {
-      left: 7px;
-      top: 2px;
-      width: 2px;
-      height: 12px;
-    }
-
-    .icon-target::after {
-      left: 2px;
-      top: 7px;
-      width: 12px;
-      height: 2px;
-    }
-
-    .search-panel {
+    .play-icon .pause-glyph {
       display: none;
     }
 
-    .search-panel.open {
+    .play-button.is-playing .play-glyph {
+      display: none;
+    }
+
+    .play-button.is-playing .pause-glyph {
       display: block;
     }
 
-    .search-panel input {
-      min-height: 40px;
+    .skip-icon {
+      display: block;
+      width: 36px;
+      height: 36px;
+      fill: currentColor;
+      overflow: visible;
+    }
+
+    .skip-icon.back {
+      transform: rotate(180deg);
+    }
+
+    .progress-area {
+      display: grid;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .progress {
+      --progress: 0%;
+      width: 100%;
+      height: 34px;
+      margin: 0;
+      min-height: 0;
+      padding: 0;
+      border: 0;
+      outline: 0;
+      appearance: none;
+      accent-color: #f1f0ec;
+      background: transparent;
+      cursor: pointer;
+    }
+
+    .progress:focus,
+    .progress:focus-visible {
+      outline: 0;
+      box-shadow: none;
+    }
+
+    .progress::-webkit-slider-runnable-track {
+      height: 5px;
       border-radius: 999px;
-      padding: 0 14px;
+      background:
+        linear-gradient(90deg, rgba(255, 255, 255, 0.78) 0 var(--progress), rgba(255, 255, 255, 0.22) var(--progress) 100%);
+    }
+
+    .progress::-webkit-slider-thumb {
+      appearance: none;
+      width: 15px;
+      height: 15px;
+      margin-top: -5px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.9);
+      box-shadow: none;
+    }
+
+    .progress::-moz-range-track {
+      height: 5px;
+      border-radius: 999px;
+      background:
+        linear-gradient(90deg, rgba(255, 255, 255, 0.78) 0 var(--progress), rgba(255, 255, 255, 0.22) var(--progress) 100%);
+    }
+
+    .progress::-moz-range-thumb {
+      width: 15px;
+      height: 15px;
+      border: 0;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.9);
+      box-shadow: none;
+    }
+
+    .time-row {
+      display: flex;
+      justify-content: space-between;
+      color: var(--muted);
+      font-size: 12px;
+      font-variant-numeric: tabular-nums;
+      line-height: 1;
+    }
+
+    .search-row {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+      margin-top: 6px;
+      min-width: 0;
+    }
+
+    .icon-action {
+      width: 44px;
+      flex: 0 0 44px;
+      min-height: 44px;
+      padding: 0;
+      border-radius: 50%;
+      border: 0;
+      background: transparent;
+      color: rgba(255, 255, 255, 0.84);
+      display: grid;
+      place-items: center;
+    }
+
+    button.icon-action {
+      border: 0;
+      background: transparent;
+      color: rgba(255, 255, 255, 0.84);
+    }
+
+    .icon-action.active {
+      background: rgba(255, 255, 255, 0.085);
+      color: rgba(255, 255, 255, 0.96);
+    }
+
+    button.icon-action.active {
+      background: rgba(255, 255, 255, 0.085);
+      color: rgba(255, 255, 255, 0.96);
+    }
+
+    .search-shell {
+      flex: 1 1 auto;
+      width: 100%;
+      min-width: 0;
+      min-height: 44px;
+      border: 0;
+      border-radius: 0;
+      display: flex;
+      align-items: center;
+      overflow: hidden;
+      background: transparent;
+      box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.07);
+    }
+
+    .search-shell:focus-within {
+      background: transparent;
+      box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.16);
+    }
+
+    .search-shell .icon-action {
+      flex: 0 0 44px;
+      border-color: transparent;
+      background: transparent;
+    }
+
+    .search-shell input {
+      width: 100%;
+      min-width: 0;
+      min-height: 44px;
+      padding: 0 14px 0 2px;
+      border: 0;
+      outline: 0;
+      opacity: 1;
+      background: transparent;
+      color: rgba(255, 255, 255, 0.92);
+      transition: opacity 160ms ease;
+    }
+
+    .search-shell input::placeholder {
+      color: rgba(255, 255, 255, 0.38);
+    }
+
+    .search-shell input:focus,
+    .search-shell input:focus-visible {
+      outline: 0;
+      box-shadow: none;
+    }
+
+    .search-shell input::-webkit-search-decoration,
+    .search-shell input::-webkit-search-cancel-button,
+    .search-shell input::-webkit-search-results-button,
+    .search-shell input::-webkit-search-results-decoration {
+      appearance: none;
+      display: none;
+    }
+
+    .search-close {
+      flex: 0 0 44px;
+      width: 44px;
+      min-height: 44px;
+      padding: 0;
+      border: 0;
+      background: transparent;
+    }
+
+    button.search-close {
+      border: 0;
+      background: transparent;
+    }
+
+    .symbol {
+      display: block;
+      width: 22px;
+      height: 22px;
+      fill: currentColor;
+    }
+
+    .quick-actions .symbol {
+      width: 21px;
+      height: 21px;
+      stroke-width: 2.1;
     }
 
     .transcript {
       overflow: auto;
-      padding: 18px clamp(12px, 4vw, 54px) 80px;
+      padding: 22px clamp(12px, 4vw, 54px) 42px;
       scroll-behavior: smooth;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+      -webkit-mask-image: linear-gradient(to bottom, #000 0, #000 calc(100% - 96px), transparent 100%);
+      mask-image: linear-gradient(to bottom, #000 0, #000 calc(100% - 96px), transparent 100%);
+    }
+
+    .transcript::-webkit-scrollbar {
+      width: 0;
+      height: 0;
+      display: none;
     }
 
     .empty {
@@ -478,20 +745,21 @@
     .paragraph {
       max-width: 820px;
       margin: 0 auto 14px;
-      padding: 10px 12px;
-      border-radius: 8px;
+      padding: 10px 10px;
+      border-radius: 12px;
       line-height: 1.72;
       font-size: clamp(17px, 4.35vw, 19px);
       transition: background 120ms ease, box-shadow 120ms ease;
     }
 
     .paragraph.current {
-      background: var(--accent-soft);
-      box-shadow: inset 4px 0 0 var(--accent);
+      background: rgba(255, 255, 255, 0.065);
+      box-shadow: none;
     }
 
     .paragraph.search-hit {
-      outline: 2px solid rgba(148, 99, 22, 0.45);
+      outline: 0;
+      background: rgba(255, 255, 255, 0.1);
     }
 
     .manual {
@@ -542,10 +810,32 @@
         gap: 7px;
       }
 
+      .player {
+        padding: 10px 12px;
+      }
+
+      .transport {
+        gap: 24px;
+      }
+
+      .play-button {
+        width: 66px;
+        min-height: 66px;
+      }
+
+      .skip-button {
+        width: 52px;
+        min-height: 52px;
+      }
+
       .icon-action,
       #openEpisodes {
-        width: 38px;
-        min-height: 38px;
+        width: 44px;
+        min-height: 44px;
+      }
+
+      .search-shell .icon-action {
+        flex-basis: 44px;
       }
     }
   </style>
@@ -554,21 +844,24 @@
   <main class="app">
     <div id="drawerBackdrop" class="drawer-backdrop" aria-hidden="true"></div>
     <aside class="sidebar" aria-label="Podcast episodes">
-      <section class="brand">
-        <div class="brand-text">
-          <h1>Philosophize This!</h1>
-          <p>Episodes are sorted from oldest to newest.</p>
-        </div>
-      </section>
+      <header class="drawer-nav">
+        <section class="brand">
+          <div class="brand-text">
+            <h1>Philosophize This!</h1>
+          </div>
+        </section>
 
-      <section class="quick-actions">
-        <div id="status" class="status">Loading episodes...</div>
-        <button id="loadFeed" class="secondary" type="button">Refresh</button>
-      </section>
+        <section class="quick-actions">
+          <div id="status" class="status" aria-live="polite">Loading episodes...</div>
+          <button id="loadFeed" class="secondary" type="button" aria-label="Refresh episodes" title="Refresh episodes">
+            <svg class="symbol" viewBox="0 0 256 256" aria-hidden="true"><path d="M240,56v48a8,8,0,0,1-8,8H184a8,8,0,0,1,0-16H211.4L184.81,71.64l-.25-.24a80,80,0,1,0-1.67,114.78,8,8,0,0,1,11,11.63A95.44,95.44,0,0,1,128,224h-1.32A96,96,0,1,1,195.75,60L224,85.8V56a8,8,0,1,1,16,0Z"></path></svg>
+          </button>
+        </section>
+      </header>
 
       <section class="settings">
         <details>
-          <summary>Options</summary>
+          <summary>Options <svg class="symbol" viewBox="0 0 256 256" aria-hidden="true"><path d="M213.66,101.66l-80,80a8,8,0,0,1-11.32,0l-80-80A8,8,0,0,1,53.66,90.34L128,164.69l74.34-74.35a8,8,0,0,1,11.32,11.32Z"></path></svg></summary>
           <div class="row">
             <label>
               Intro offset, sec
@@ -604,9 +897,23 @@
       <section class="player">
         <div class="player-head">
           <button id="openEpisodes" class="ghost icon-action" type="button" aria-label="Episodes" title="Episodes">
-            <span class="icon icon-menu" aria-hidden="true"></span>
+            <svg class="symbol" viewBox="0 0 256 256" aria-hidden="true"><path d="M224,128a8,8,0,0,1-8,8H40a8,8,0,0,1,0-16H216A8,8,0,0,1,224,128ZM40,72H216a8,8,0,0,0,0-16H40a8,8,0,0,0,0,16ZM216,184H40a8,8,0,0,0,0,16H216A8,8,0,0,0,216,184Z"></path></svg>
           </button>
           <h2 id="episodeTitle">No episode selected</h2>
+        </div>
+        <div class="search-row">
+          <div id="searchShell" class="search-shell">
+            <button id="openSearch" type="button" class="ghost icon-action" aria-label="Focus transcript search" title="Search">
+              <svg class="symbol" viewBox="0 0 256 256" aria-hidden="true"><path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"></path></svg>
+            </button>
+            <input id="search" type="search" aria-label="Search transcript" placeholder="Search">
+            <button id="closeSearch" type="button" class="ghost icon-action search-close" aria-label="Clear search" title="Clear search">
+              <svg class="symbol" viewBox="0 0 256 256" aria-hidden="true"><path d="M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z"></path></svg>
+            </button>
+          </div>
+          <button id="follow" type="button" class="ghost icon-action active" aria-label="Follow audio" aria-pressed="true" title="Follow audio">
+            <svg class="symbol" viewBox="0 0 256 256" aria-hidden="true"><path d="M232,120h-8.34A96.14,96.14,0,0,0,136,32.34V24a8,8,0,0,0-16,0v8.34A96.14,96.14,0,0,0,32.34,120H24a8,8,0,0,0,0,16h8.34A96.14,96.14,0,0,0,120,223.66V232a8,8,0,0,0,16,0v-8.34A96.14,96.14,0,0,0,223.66,136H232a8,8,0,0,0,0-16Zm-96,87.6V200a8,8,0,0,0-16,0v7.6A80.15,80.15,0,0,1,48.4,136H56a8,8,0,0,0,0-16H48.4A80.15,80.15,0,0,1,120,48.4V56a8,8,0,0,0,16,0V48.4A80.15,80.15,0,0,1,207.6,120H200a8,8,0,0,0,0,16h7.6A80.15,80.15,0,0,1,136,207.6ZM128,88a40,40,0,1,0,40,40A40,40,0,0,0,128,88Zm0,64a24,24,0,1,1,24-24A24,24,0,0,1,128,152Z"></path></svg>
+          </button>
         </div>
         <div class="player-meta">
           <span id="episodeDate">-</span>
@@ -614,18 +921,7 @@
           <a id="sourceLink" href="#" target="_blank" rel="noreferrer" hidden>Source</a>
           <a id="transcriptLink" href="#" target="_blank" rel="noreferrer" hidden>Transcript</a>
         </div>
-        <audio id="audio" controls preload="metadata"></audio>
-        <div class="transcript-tools">
-          <button id="openSearch" type="button" class="ghost icon-action" aria-label="Search transcript" title="Search">
-            <span class="icon icon-search" aria-hidden="true"></span>
-          </button>
-          <button id="follow" type="button" class="ghost icon-action active" aria-label="Follow audio" aria-pressed="true" title="Follow audio">
-            <span class="icon icon-follow" aria-hidden="true"></span>
-          </button>
-        </div>
-        <div id="searchPanel" class="search-panel">
-          <input id="search" type="search" aria-label="Search transcript">
-        </div>
+        <audio id="audio" preload="metadata"></audio>
       </section>
 
       <article id="transcript" class="transcript">
@@ -633,6 +929,30 @@
           Loading Philosophize This! episodes...
         </div>
       </article>
+
+      <section class="now-playing" aria-label="Playback controls">
+        <div class="transport">
+          <button id="back15" class="skip-button" type="button" aria-label="Back 15 seconds" title="Back 15 seconds">
+            <svg class="skip-icon back" viewBox="0 0 256 256" aria-hidden="true"><path d="M232,71.84V184.16a15.92,15.92,0,0,1-24.48,13.34L128,146.86v37.3a15.92,15.92,0,0,1-24.48,13.34L15.33,141.34a15.8,15.8,0,0,1,0-26.68L103.52,58.5A15.91,15.91,0,0,1,128,71.84v37.3L207.52,58.5A15.91,15.91,0,0,1,232,71.84Z"></path></svg>
+          </button>
+          <button id="playPause" class="play-button" type="button" aria-label="Play" title="Play">
+            <svg class="play-icon" viewBox="0 0 256 256" aria-hidden="true">
+              <path class="play-glyph" d="M240,128a15.74,15.74,0,0,1-7.6,13.51L88.32,229.65a16,16,0,0,1-16.2.3A15.86,15.86,0,0,1,64,216.13V39.87a15.86,15.86,0,0,1,8.12-13.82,16,16,0,0,1,16.2.3L232.4,114.49A15.74,15.74,0,0,1,240,128Z"></path>
+              <path class="pause-glyph" d="M216,48V208a16,16,0,0,1-16,16H160a16,16,0,0,1-16-16V48a16,16,0,0,1,16-16h40A16,16,0,0,1,216,48ZM96,32H56A16,16,0,0,0,40,48V208a16,16,0,0,0,16,16H96a16,16,0,0,0,16-16V48A16,16,0,0,0,96,32Z"></path>
+            </svg>
+          </button>
+          <button id="forward15" class="skip-button" type="button" aria-label="Forward 15 seconds" title="Forward 15 seconds">
+            <svg class="skip-icon forward" viewBox="0 0 256 256" aria-hidden="true"><path d="M256,128a15.76,15.76,0,0,1-7.33,13.34L160.48,197.5A15.91,15.91,0,0,1,136,184.16v-37.3L56.48,197.5A15.91,15.91,0,0,1,32,184.16V71.84A15.91,15.91,0,0,1,56.48,58.5L136,109.14V71.84A15.91,15.91,0,0,1,160.48,58.5l88.19,56.16A15.76,15.76,0,0,1,256,128Z"></path></svg>
+          </button>
+        </div>
+        <div class="progress-area">
+          <input id="progress" class="progress" type="range" min="0" max="1000" value="0" step="1" aria-label="Playback progress">
+          <div class="time-row" aria-hidden="true">
+            <span id="currentTime">0:00</span>
+            <span id="remainingTime">--:--</span>
+          </div>
+        </div>
+      </section>
     </section>
   </main>
 
@@ -641,6 +961,8 @@
     const PODCAST_RSS_URL = "https://feeds.megaphone.fm/QCD6036500916";
     const TRANSCRIPTS_INDEX_URL = "https://www.philosophizethis.org/transcripts";
     const TRANSCRIPT_FALLBACK_PATTERN = "https://www.philosophizethis.org/transcript/episode-{episode}-transcript";
+    const FEED_CACHE_MAX_AGE_MS = 12 * 60 * 60 * 1000;
+    const TRANSCRIPT_INDEX_CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 
     const els = {
       drawerBackdrop: document.getElementById("drawerBackdrop"),
@@ -661,9 +983,16 @@
       sourceLink: document.getElementById("sourceLink"),
       transcriptLink: document.getElementById("transcriptLink"),
       audio: document.getElementById("audio"),
+      back15: document.getElementById("back15"),
+      playPause: document.getElementById("playPause"),
+      forward15: document.getElementById("forward15"),
+      progress: document.getElementById("progress"),
+      currentTime: document.getElementById("currentTime"),
+      remainingTime: document.getElementById("remainingTime"),
       transcript: document.getElementById("transcript"),
       openSearch: document.getElementById("openSearch"),
-      searchPanel: document.getElementById("searchPanel"),
+      closeSearch: document.getElementById("closeSearch"),
+      searchShell: document.getElementById("searchShell"),
       search: document.getElementById("search"),
       follow: document.getElementById("follow"),
     };
@@ -681,6 +1010,7 @@
 
     hydrateSettings();
     bindEvents();
+    hydrateCachedSelection();
     loadFeed();
 
     function loadState() {
@@ -693,13 +1023,52 @@
 
     function saveState(patch = {}) {
       state = { ...state, ...patch };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      } catch (error) {
+        console.warn("Could not save local cache.", error);
+      }
+    }
+
+    function freshCache(entry, maxAgeMs) {
+      if (!entry || !Number.isFinite(entry.savedAt)) return null;
+      return Date.now() - entry.savedAt <= maxAgeMs ? entry : null;
     }
 
     function hydrateSettings() {
       els.introOffset.value = String(state.introOffset ?? 0);
       els.outroOffset.value = String(state.outroOffset ?? 0);
       setFollowEnabled(state.followAudio ?? true);
+    }
+
+    function hydrateCachedSelection() {
+      const snapshot = state.selectedEpisodeSnapshot;
+      const selectedId = state.selectedEpisodeId;
+      const cacheKey = snapshot?.id || selectedId;
+      const cachedText = cacheKey ? state.transcriptCache?.[cacheKey] : "";
+      if (!cachedText) return;
+
+      selectedEpisode = snapshot || {
+        id: selectedId,
+        title: "Cached episode",
+        displayTitle: "Cached episode",
+      };
+      currentParagraphIndex = -1;
+      els.episodeTitle.textContent = selectedEpisode.displayTitle || selectedEpisode.title;
+      els.episodeDate.textContent = formatDate(selectedEpisode.pubDate) || "";
+      els.episodeNumber.textContent = selectedEpisode.episodeNumber ? `Episode ${selectedEpisode.episodeNumber}` : "";
+      setOptionalLink(els.sourceLink, selectedEpisode.link);
+      setOptionalLink(els.transcriptLink, snapshot?.transcriptUrl || "");
+
+      if (snapshot?.audioUrl) {
+        els.audio.src = snapshot.audioUrl;
+        els.audio.load();
+        updatePlayButton();
+        updatePlayerProgress();
+      }
+
+      renderTranscript(cachedText);
+      setStatus("Loaded cached transcript.");
     }
 
     function bindEvents() {
@@ -724,7 +1093,7 @@
         }
       }, { passive: true });
 
-      els.loadFeed.addEventListener("click", loadFeed);
+      els.loadFeed.addEventListener("click", () => loadFeed({ force: true }));
       els.toggleManual.addEventListener("click", () => {
         els.manualBox.classList.toggle("open");
       });
@@ -772,21 +1141,48 @@
       });
 
       els.openSearch.addEventListener("click", () => {
-        els.searchPanel.classList.toggle("open");
-        if (els.searchPanel.classList.contains("open")) {
-          els.search.focus();
-        } else {
-          els.search.value = "";
-          applySearch("");
+        els.search.focus();
+      });
+
+      els.closeSearch.addEventListener("click", clearSearch);
+
+      els.playPause.addEventListener("click", async () => {
+        if (!els.audio.src) return;
+        try {
+          if (els.audio.paused) {
+            await els.audio.play();
+          } else {
+            els.audio.pause();
+          }
+        } catch (error) {
+          setStatus("Tap again if the browser blocked autoplay.", true);
         }
       });
 
+      els.progress.addEventListener("input", () => {
+        if (!Number.isFinite(els.audio.duration) || els.audio.duration <= 0) return;
+        els.audio.currentTime = (Number(els.progress.value) / 1000) * els.audio.duration;
+        updatePlayerProgress();
+        updateHighlight();
+      });
+
+      els.back15.addEventListener("click", () => seekBy(-15));
+      els.forward15.addEventListener("click", () => seekBy(15));
+
       els.audio.addEventListener("timeupdate", () => {
         updateHighlight();
+        updatePlayerProgress();
         savePlaybackProgress();
       });
 
-      els.audio.addEventListener("loadedmetadata", restorePlaybackProgress);
+      els.audio.addEventListener("loadedmetadata", () => {
+        restorePlaybackProgress();
+        updatePlayerProgress();
+      });
+      els.audio.addEventListener("durationchange", updatePlayerProgress);
+      els.audio.addEventListener("play", updatePlayButton);
+      els.audio.addEventListener("pause", updatePlayButton);
+      els.audio.addEventListener("ended", updatePlayButton);
 
       els.search.addEventListener("input", () => {
         applySearch(els.search.value.trim());
@@ -794,21 +1190,27 @@
 
     }
 
-    async function loadFeed() {
+    async function loadFeed({ force = false } = {}) {
       saveState({
         introOffset: numberValue(els.introOffset),
         outroOffset: numberValue(els.outroOffset),
       });
 
-      setStatus("Loading episodes...");
+      setStatus(force ? "Refreshing episodes..." : "Loading episodes...");
       els.loadFeed.disabled = true;
 
       try {
-        await loadTranscriptIndex();
-        const xml = await fetchText(PODCAST_RSS_URL, "RSS");
+        await loadTranscriptIndex({ force });
+        const cachedFeed = !force && freshCache(state.feedCache, FEED_CACHE_MAX_AGE_MS);
+        let xml = cachedFeed?.xml || "";
+        if (!xml) {
+          xml = await fetchText(PODCAST_RSS_URL, "RSS");
+          saveState({ feedCache: { xml, savedAt: Date.now() } });
+        }
+
         episodes = sortEpisodesAscending(parseRss(xml));
         renderEpisodes();
-        setStatus(`Loaded ${episodes.length} episodes.`);
+        setStatus(cachedFeed ? `Loaded ${episodes.length} cached episodes.` : `Loaded ${episodes.length} episodes.`);
 
         const savedId = state.selectedEpisodeId;
         const savedEpisode = episodes.find((episode) => episode.id === savedId);
@@ -845,11 +1247,19 @@
       });
     }
 
-    async function loadTranscriptIndex() {
+    async function loadTranscriptIndex({ force = false } = {}) {
+      const cachedIndex = !force && freshCache(state.transcriptIndexCache, TRANSCRIPT_INDEX_CACHE_MAX_AGE_MS);
+      if (cachedIndex?.map && typeof cachedIndex.map === "object") {
+        transcriptMap = cachedIndex.map;
+        transcriptIndexLoaded = true;
+        return;
+      }
+
       try {
         const html = await fetchText(TRANSCRIPTS_INDEX_URL, "transcript index");
         transcriptMap = parseTranscriptIndex(html);
         transcriptIndexLoaded = true;
+        saveState({ transcriptIndexCache: { map: transcriptMap, savedAt: Date.now() } });
       } catch {
         transcriptMap = {};
         transcriptIndexLoaded = false;
@@ -981,7 +1391,11 @@
     async function selectEpisode(episode) {
       selectedEpisode = episode;
       currentParagraphIndex = -1;
-      saveState({ selectedEpisodeId: episode.id });
+      const transcriptUrl = buildTranscriptUrl(episode);
+      saveState({
+        selectedEpisodeId: episode.id,
+        selectedEpisodeSnapshot: episodeSnapshot(episode, transcriptUrl),
+      });
 
       document.querySelectorAll(".episode").forEach((button) => {
         button.classList.toggle("active", button.dataset.id === episode.id);
@@ -993,14 +1407,12 @@
       setOptionalLink(els.sourceLink, episode.link);
       els.audio.src = episode.audioUrl;
       els.audio.load();
-      els.search.value = "";
-      els.searchPanel.classList.remove("open");
-      applySearch("");
+      updatePlayButton();
+      updatePlayerProgress();
+      clearSearch();
       closeEpisodeDrawer();
 
-      const transcriptUrl = buildTranscriptUrl(episode);
       setOptionalLink(els.transcriptLink, transcriptUrl);
-      renderEmpty("Loading transcript...");
 
       const cacheKey = transcriptCacheKey(episode);
       const cachedText = state.transcriptCache?.[cacheKey];
@@ -1009,6 +1421,8 @@
         setStatus("Loaded cached transcript.");
         return;
       }
+
+      renderEmpty("Loading transcript...");
 
       if (!transcriptUrl) {
         renderEmpty("No transcript page matched this episode. Paste transcript text from Options.");
@@ -1074,6 +1488,19 @@
 
     function transcriptCacheKey(episode) {
       return episode.id || episode.title;
+    }
+
+    function episodeSnapshot(episode, transcriptUrl = "") {
+      return {
+        id: episode.id,
+        title: episode.title,
+        displayTitle: episode.displayTitle,
+        link: episode.link,
+        audioUrl: episode.audioUrl,
+        pubDate: episode.pubDate,
+        episodeNumber: episode.episodeNumber,
+        transcriptUrl,
+      };
     }
 
     function extractReadableText(html) {
@@ -1322,6 +1749,42 @@
       if (Number.isFinite(savedTime) && savedTime > 0 && savedTime < els.audio.duration - 5) {
         els.audio.currentTime = savedTime;
       }
+    }
+
+    function updatePlayButton() {
+      const isPlaying = !els.audio.paused && !els.audio.ended;
+      els.playPause.classList.toggle("is-playing", isPlaying);
+      els.playPause.setAttribute("aria-label", isPlaying ? "Pause" : "Play");
+      els.playPause.title = isPlaying ? "Pause" : "Play";
+    }
+
+    function seekBy(seconds) {
+      if (!Number.isFinite(els.audio.duration) || els.audio.duration <= 0) return;
+      els.audio.currentTime = Math.min(els.audio.duration, Math.max(0, els.audio.currentTime + seconds));
+      updatePlayerProgress();
+      updateHighlight();
+    }
+
+    function updatePlayerProgress() {
+      const duration = Number.isFinite(els.audio.duration) && els.audio.duration > 0 ? els.audio.duration : 0;
+      const current = Number.isFinite(els.audio.currentTime) ? els.audio.currentTime : 0;
+      const progress = duration ? Math.round((current / duration) * 1000) : 0;
+      els.progress.value = String(progress);
+      els.progress.style.setProperty("--progress", `${progress / 10}%`);
+      els.currentTime.textContent = formatTime(current);
+      els.remainingTime.textContent = duration ? `-${formatTime(Math.max(0, duration - current))}` : "--:--";
+    }
+
+    function clearSearch() {
+      els.search.value = "";
+      applySearch("");
+    }
+
+    function formatTime(seconds) {
+      const total = Math.max(0, Math.floor(Number(seconds) || 0));
+      const minutes = Math.floor(total / 60);
+      const remainder = String(total % 60).padStart(2, "0");
+      return `${minutes}:${remainder}`;
     }
 
     function applySearch(query) {
