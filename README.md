@@ -10,7 +10,7 @@ Static first version for listening to Philosophize This! with transcript reading
 - The drawer closes by tapping the backdrop, pressing Escape, selecting an episode, or swiping left.
 - Main controls use a compact icon toolbar; search opens only when requested, and follow is a simple on/off icon toggle.
 - Uses the fixed RSS feed: `https://feeds.megaphone.fm/QCD6036500916`.
-- Reads the transcript directory: `https://www.philosophizethis.org/transcripts `.
+- Reads the transcript directory: `https://www.philosophizethis.org/transcripts`.
 - Matches audio and transcript by episode number.
 - Defaults to the newest episode that already has a transcript.
 - Keeps newer audio-only episodes visible in the list.
