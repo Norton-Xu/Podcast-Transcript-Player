@@ -1031,6 +1031,7 @@
     hydrateSettings();
     bindEvents();
     hydrateCachedSelection();
+    hydrateCachedFeed();
     loadFeed();
 
     function loadState() {
@@ -1089,6 +1090,18 @@
 
       renderTranscript(cachedText);
       setStatus("Loaded cached transcript.");
+    }
+
+    function hydrateCachedFeed() {
+      const xml = state.feedCache?.xml;
+      if (!xml) return;
+
+      try {
+        episodes = sortEpisodesAscending(parseRss(xml));
+        renderEpisodes();
+      } catch {
+        // A bad local feed cache should never block a fresh network load.
+      }
     }
 
     function bindEvents() {
@@ -1220,7 +1233,7 @@
       els.loadFeed.disabled = true;
 
       try {
-        await loadTranscriptIndex({ force });
+        const transcriptIndexPromise = loadTranscriptIndex({ force });
         const cachedFeed = !force && freshCache(state.feedCache, FEED_CACHE_MAX_AGE_MS);
         let xml = cachedFeed?.xml || "";
         if (!xml) {
@@ -1234,13 +1247,15 @@
 
         const savedId = state.selectedEpisodeId;
         const savedEpisode = episodes.find((episode) => episode.id === savedId);
-        if (savedEpisode) {
+        if (savedEpisode && selectedEpisode?.id !== savedEpisode.id) {
           selectEpisode(savedEpisode);
-        } else {
-          const latestWithTranscript = [...episodes].reverse().find((episode) => hasKnownTranscript(episode));
-          const latestEpisode = episodes[episodes.length - 1];
-          if (latestWithTranscript || latestEpisode) selectEpisode(latestWithTranscript || latestEpisode);
+        } else if (!selectedEpisode && episodes[0]) {
+          // On a true first visit, start useful work as soon as RSS arrives.
+          selectEpisode(episodes[0]);
         }
+
+        await transcriptIndexPromise;
+        renderEpisodes();
       } catch (error) {
         setStatus(`${error.message}. If this is a CORS error, this static version needs a tiny proxy later.`, true);
       } finally {
@@ -1391,6 +1406,7 @@
         const button = document.createElement("button");
         button.type = "button";
         button.className = "episode";
+        button.classList.toggle("active", episode.id === (selectedEpisode?.id || state.selectedEpisodeId));
         button.dataset.id = episode.id;
         button.innerHTML = `
           <span class="episode-title"></span>
