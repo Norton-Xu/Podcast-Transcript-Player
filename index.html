@@ -18,16 +18,20 @@
       --accent-soft: rgba(140, 207, 193, 0.14);
       --warn: #e3bd70;
       --shadow: 0 24px 70px rgba(0, 0, 0, 0.42);
-      --app-height: 100dvh;
     }
 
     * {
       box-sizing: border-box;
     }
 
+    html {
+      height: 100%;
+    }
+
     body {
       margin: 0;
-      min-height: 100vh;
+      height: 100%;
+      overflow: hidden;
       background: var(--bg);
       color: var(--ink);
       font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -98,7 +102,7 @@
     }
 
     .app {
-      min-height: var(--app-height);
+      height: 100%;
       background: var(--panel);
     }
 
@@ -384,11 +388,10 @@
     }
 
     .reader {
+      position: fixed;
+      inset: 0;
       display: grid;
       grid-template-rows: auto minmax(0, 1fr) auto;
-      height: var(--app-height);
-      min-height: var(--app-height);
-      max-height: var(--app-height);
       overflow: hidden;
       background:
         radial-gradient(circle at 78% 78%, rgba(102, 42, 64, 0.34), transparent 40%),
@@ -811,17 +814,10 @@
       }
 
       .reader {
-        max-height: none;
         border-radius: 0;
         border-left: 0;
         border-right: 0;
         box-shadow: none;
-      }
-
-      .reader {
-        height: var(--app-height);
-        min-height: var(--app-height);
-        max-height: var(--app-height);
       }
 
       .row {
@@ -1031,21 +1027,11 @@
     let lastSavedAt = 0;
     let drawerTouchStart = null;
 
-    syncAppHeight();
     hydrateSettings();
     bindEvents();
     hydrateCachedSelection();
     hydrateCachedFeed();
     loadFeed();
-
-    function syncAppHeight() {
-      const viewportHeight = Math.round(window.visualViewport?.height || window.innerHeight);
-      document.documentElement.style.setProperty("--app-height", `${viewportHeight}px`);
-    }
-
-    window.addEventListener("resize", syncAppHeight);
-    window.addEventListener("orientationchange", syncAppHeight);
-    window.visualViewport?.addEventListener("resize", syncAppHeight);
 
     function loadState() {
       try {

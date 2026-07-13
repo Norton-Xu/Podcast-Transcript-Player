@@ -1,25 +1,28 @@
 # Philosophize This! Transcript Player
 
-Static first version for listening to Philosophize This! with transcript reading.
+Static mobile player for listening to Philosophize This! with transcript reading.
 
 ## What it does
 
-- Opens directly to the episode list.
-- Dark mobile-first reading UI: the main screen is the player plus transcript.
+- Dark, mobile-first reading UI: the main screen is the transcript and a fixed bottom player.
 - Episode selection lives in a collapsed left-side drawer.
 - The drawer closes by tapping the backdrop, pressing Escape, selecting an episode, or swiping left.
-- Main controls use a compact icon toolbar; search opens only when requested, and follow is a simple on/off icon toggle.
+- Main controls use a touch-friendly player with 15-second circular seek controls, a centered play button, and a large progress slider.
+- Search stays visible below the title; every matching word or phrase is highlighted inline in the transcript.
+- Follow audio is a simple on/off icon toggle beside search.
 - Uses the fixed RSS feed: `https://feeds.megaphone.fm/QCD6036500916`.
 - Reads the transcript directory: `https://www.philosophizethis.org/transcripts`.
 - Matches audio and transcript by episode number.
-- Defaults to the newest episode that already has a transcript.
+- Sorts episodes from oldest to newest and selects episode 001 on a true first visit.
 - Keeps newer audio-only episodes visible in the list.
-- Sorts episodes from oldest to newest in the drawer.
 - Falls back to public CORS/readability endpoints if direct browser fetching is blocked.
-- Loads audio in the browser player.
+- Loads audio through the browser audio element behind a custom mobile-friendly player.
 - Extracts transcript paragraphs from the episode transcript page.
 - Highlights the current paragraph based on playback progress and paragraph text length.
-- Saves current episode, playback time, settings, and loaded transcripts in browser storage.
+- Saves the current episode, playback time, settings, loaded transcripts, RSS feed, and transcript index in browser storage.
+- Restores a cached transcript and episode menu immediately on later visits while refreshing remote data in the background.
+- Fetches RSS and the transcript directory in parallel, so a first visit can begin loading episode 001 as soon as RSS arrives.
+- Uses original [Phosphor Icons](https://phosphoricons.com/) SVG assets; see `THIRD_PARTY_NOTICES.md` for the MIT license.
 
 ## Options
 
@@ -35,3 +38,4 @@ The visible options are intentionally small:
 - This is still a static HTML page. It uses public fallback endpoints as a prototype convenience, which is less reliable than your own small proxy API.
 - Highlighting is approximate. It maps audio progress to transcript paragraph position, improved by text length; it is not timestamp-level sync.
 - iOS browsers require a manual tap to start audio playback.
+- Cached content is local to the current browser and device. It does not sync between devices.
