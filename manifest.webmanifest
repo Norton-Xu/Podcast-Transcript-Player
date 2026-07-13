@@ -1,0 +1,17 @@
+{
+  "name": "Philosophize This! Transcript Player",
+  "short_name": "Philosophize This",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#101113",
+  "theme_color": "#101113",
+  "icons": [
+    {
+      "src": "./app-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

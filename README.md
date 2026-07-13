@@ -20,8 +20,10 @@ Static mobile player for listening to Philosophize This! with transcript reading
 - Extracts transcript paragraphs from the episode transcript page.
 - Highlights the current paragraph based on playback progress and paragraph text length.
 - Saves the current episode, playback time, settings, loaded transcripts, RSS feed, and transcript index in browser storage.
+- Shows a light `Resume 12:34` or `Finished` marker for episodes you have listened to.
 - Restores a cached transcript and episode menu immediately on later visits while refreshing remote data in the background.
 - Fetches RSS and the transcript directory in parallel, so a first visit can begin loading episode 001 as soon as RSS arrives.
+- Is installable as a small PWA on GitHub Pages. The app shell works offline after the first visit; cached transcripts and listening progress remain available in the same browser.
 - Uses original [Phosphor Icons](https://phosphoricons.com/) SVG assets; see `THIRD_PARTY_NOTICES.md` for the MIT license.
 
 ## Options
@@ -39,3 +41,4 @@ The visible options are intentionally small:
 - Highlighting is approximate. It maps audio progress to transcript paragraph position, improved by text length; it is not timestamp-level sync.
 - iOS browsers require a manual tap to start audio playback.
 - Cached content is local to the current browser and device. It does not sync between devices.
+- Audio files and newly opened transcripts still need a network connection; the PWA cache deliberately avoids downloading large podcast audio automatically.

@@ -3,6 +3,12 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101113">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Philosophize This">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="apple-touch-icon" href="./app-icon.svg">
   <title>Podcast Transcript Player</title>
   <style>
     :root {
@@ -385,6 +391,13 @@
       color: var(--muted);
       font-size: 12px;
       font-weight: 600;
+    }
+
+    .episode-resume {
+      color: var(--accent-strong);
+      font-size: 12px;
+      font-weight: 650;
+      font-variant-numeric: tabular-nums;
     }
 
     .reader {
@@ -1032,6 +1045,7 @@
     hydrateCachedSelection();
     hydrateCachedFeed();
     loadFeed();
+    registerServiceWorker();
 
     function loadState() {
       try {
@@ -1048,6 +1062,13 @@
       } catch (error) {
         console.warn("Could not save local cache.", error);
       }
+    }
+
+    function registerServiceWorker() {
+      if (!("serviceWorker" in navigator) || !window.isSecureContext) return;
+      navigator.serviceWorker.register("./sw.js", { scope: "./" }).catch((error) => {
+        console.warn("Offline support could not be enabled.", error);
+      });
     }
 
     function freshCache(entry, maxAgeMs) {
@@ -1214,7 +1235,11 @@
       els.audio.addEventListener("durationchange", updatePlayerProgress);
       els.audio.addEventListener("play", updatePlayButton);
       els.audio.addEventListener("pause", updatePlayButton);
-      els.audio.addEventListener("ended", updatePlayButton);
+      els.audio.addEventListener("ended", () => {
+        savePlaybackProgress({ completed: true });
+        updatePlayButton();
+        renderEpisodes();
+      });
 
       els.search.addEventListener("input", () => {
         applySearch(els.search.value.trim());
@@ -1263,6 +1288,8 @@
     }
 
     function openEpisodeDrawer() {
+      savePlaybackProgress();
+      renderEpisodes();
       document.body.classList.add("drawer-open");
     }
 
@@ -1410,6 +1437,7 @@
         button.innerHTML = `
           <span class="episode-title"></span>
           <span class="episode-meta"></span>
+          <span class="episode-resume" hidden></span>
         `;
         button.querySelector(".episode-title").textContent = episode.displayTitle || episode.title;
         button.querySelector(".episode-meta").textContent = [
@@ -1417,6 +1445,14 @@
           formatDate(episode.pubDate),
           hasKnownTranscript(episode) ? "Transcript" : "Audio only",
         ].filter(Boolean).join(" · ") || "Audio available";
+        const resume = button.querySelector(".episode-resume");
+        const listeningProgress = getListeningProgress(episode.id);
+        if (listeningProgress) {
+          resume.hidden = false;
+          resume.textContent = listeningProgress.completed
+            ? "Finished"
+            : `Resume ${formatTime(listeningProgress.time)}`;
+        }
         button.addEventListener("click", () => selectEpisode(episode));
         fragment.appendChild(button);
       });
@@ -1765,15 +1801,34 @@
       return elementRect.top >= containerRect.top + padding && elementRect.bottom <= containerRect.bottom - padding;
     }
 
-    function savePlaybackProgress() {
+    function getListeningProgress(episodeId) {
+      const progress = state.listeningProgress?.[episodeId];
+      if (progress && Number.isFinite(progress.time) && progress.time > 0) return progress;
+
+      const legacyTime = state.playback?.[episodeId];
+      return Number.isFinite(legacyTime) && legacyTime > 0
+        ? { time: legacyTime, completed: false }
+        : null;
+    }
+
+    function savePlaybackProgress({ completed = false } = {}) {
       if (!selectedEpisode) return;
       const now = Date.now();
-      if (now - lastSavedAt < 1500) return;
+      if (!completed && now - lastSavedAt < 1500) return;
       lastSavedAt = now;
+      const currentTime = Number.isFinite(els.audio.currentTime) ? els.audio.currentTime : 0;
       saveState({
         playback: {
           ...(state.playback || {}),
-          [selectedEpisode.id]: els.audio.currentTime,
+          [selectedEpisode.id]: currentTime,
+        },
+        listeningProgress: {
+          ...(state.listeningProgress || {}),
+          [selectedEpisode.id]: {
+            time: currentTime,
+            completed,
+            savedAt: now,
+          },
         },
       });
     }
