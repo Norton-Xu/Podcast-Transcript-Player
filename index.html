@@ -18,6 +18,7 @@
       --accent-soft: rgba(140, 207, 193, 0.14);
       --warn: #e3bd70;
       --shadow: 0 24px 70px rgba(0, 0, 0, 0.42);
+      --app-height: 100dvh;
     }
 
     * {
@@ -97,7 +98,7 @@
     }
 
     .app {
-      min-height: 100dvh;
+      min-height: var(--app-height);
       background: var(--panel);
     }
 
@@ -385,8 +386,9 @@
     .reader {
       display: grid;
       grid-template-rows: auto minmax(0, 1fr) auto;
-      min-height: 100dvh;
-      max-height: 100dvh;
+      height: var(--app-height);
+      min-height: var(--app-height);
+      max-height: var(--app-height);
       overflow: hidden;
       background:
         radial-gradient(circle at 78% 78%, rgba(102, 42, 64, 0.34), transparent 40%),
@@ -817,8 +819,9 @@
       }
 
       .reader {
-        min-height: 100dvh;
-        max-height: 100dvh;
+        height: var(--app-height);
+        min-height: var(--app-height);
+        max-height: var(--app-height);
       }
 
       .row {
@@ -1028,11 +1031,21 @@
     let lastSavedAt = 0;
     let drawerTouchStart = null;
 
+    syncAppHeight();
     hydrateSettings();
     bindEvents();
     hydrateCachedSelection();
     hydrateCachedFeed();
     loadFeed();
+
+    function syncAppHeight() {
+      const viewportHeight = Math.round(window.visualViewport?.height || window.innerHeight);
+      document.documentElement.style.setProperty("--app-height", `${viewportHeight}px`);
+    }
+
+    window.addEventListener("resize", syncAppHeight);
+    window.addEventListener("orientationchange", syncAppHeight);
+    window.visualViewport?.addEventListener("resize", syncAppHeight);
 
     function loadState() {
       try {
