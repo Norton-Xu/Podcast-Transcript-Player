@@ -64,6 +64,7 @@
       padding: 0 14px;
       font-weight: 700;
       cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
     }
 
     button.secondary {
@@ -354,6 +355,7 @@
     }
 
     .episode {
+      position: relative;
       display: grid;
       gap: 3px;
       width: 100%;
@@ -366,7 +368,7 @@
       text-align: left;
       min-height: 56px;
       font-weight: 590;
-      transition: background-color 160ms ease;
+      transition: background-color 160ms ease, opacity 120ms ease;
     }
 
     .episode:last-child {
@@ -374,13 +376,25 @@
     }
 
     .episode:active {
-      background: rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.07);
+      opacity: 0.78;
     }
 
     .episode.active {
-      background: rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.035);
       color: var(--ink);
       box-shadow: none;
+    }
+
+    .episode.active::before {
+      position: absolute;
+      top: 10px;
+      bottom: 10px;
+      left: 0;
+      width: 3px;
+      border-radius: 999px;
+      background: var(--accent);
+      content: "";
     }
 
     .episode-title {
@@ -431,13 +445,13 @@
       align-items: center;
       font-size: clamp(17px, 3vw, 21px);
       line-height: 1.2;
-      font-weight: 780;
+      font-weight: 700;
     }
 
     .player-head {
       display: grid;
       grid-template-columns: auto minmax(0, 1fr);
-      gap: 10px;
+      gap: 4px;
       align-items: center;
       min-height: 42px;
     }
@@ -465,8 +479,8 @@
 
     .now-playing {
       display: grid;
-      gap: 6px;
-      padding: 14px clamp(24px, 6vw, 52px) max(24px, calc(20px + env(safe-area-inset-bottom)));
+      gap: 2px;
+      padding: 8px clamp(24px, 6vw, 52px) max(24px, calc(20px + env(safe-area-inset-bottom)));
       border-top: 0;
       background: linear-gradient(180deg, rgba(16, 16, 18, 0), rgba(11, 10, 12, 0.58) 22%, rgba(11, 10, 12, 0.72));
       box-shadow: none;
@@ -510,11 +524,13 @@
 
     .play-button:active {
       transform: scale(0.96);
+      opacity: 0.78;
     }
 
     .skip-button:active {
       transform: scale(0.94);
       background: transparent;
+      opacity: 0.78;
     }
 
     .play-icon {
@@ -652,6 +668,13 @@
       color: rgba(255, 255, 255, 0.84);
       display: grid;
       place-items: center;
+      transition: transform 120ms ease, opacity 120ms ease, background-color 160ms ease;
+    }
+
+    .icon-action:active,
+    .quick-actions button:active {
+      transform: scale(0.94);
+      opacity: 0.72;
     }
 
     button.icon-action {
@@ -778,16 +801,18 @@
 
     .paragraph {
       max-width: 820px;
-      margin: 0 auto 14px;
-      padding: 10px 10px;
-      border-radius: 12px;
+      margin: 0 auto 18px;
+      padding: 9px 4px;
+      border-radius: 8px;
       line-height: 1.72;
       font-size: clamp(17px, 4.35vw, 19px);
-      transition: background 120ms ease, box-shadow 120ms ease;
+      color: rgba(241, 240, 236, 0.8);
+      transition: background 120ms ease, color 120ms ease;
     }
 
     .paragraph.current {
-      background: rgba(255, 255, 255, 0.065);
+      background: rgba(255, 255, 255, 0.035);
+      color: rgba(255, 255, 255, 0.98);
       box-shadow: none;
     }
 
@@ -939,7 +964,7 @@
               <svg class="symbol" viewBox="0 0 256 256" aria-hidden="true"><path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"></path></svg>
             </button>
             <input id="search" type="search" aria-label="Search transcript" placeholder="Search">
-            <button id="closeSearch" type="button" class="ghost icon-action search-close" aria-label="Clear search" title="Clear search">
+            <button id="closeSearch" type="button" class="ghost icon-action search-close" aria-label="Clear search" title="Clear search" hidden>
               <svg class="symbol" viewBox="0 0 256 256" aria-hidden="true"><path d="M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z"></path></svg>
             </button>
           </div>
@@ -1242,7 +1267,9 @@
       });
 
       els.search.addEventListener("input", () => {
-        applySearch(els.search.value.trim());
+        const query = els.search.value.trim();
+        updateSearchControls(query);
+        applySearch(query);
       });
 
     }
@@ -1867,7 +1894,12 @@
 
     function clearSearch() {
       els.search.value = "";
+      updateSearchControls("");
       applySearch("");
+    }
+
+    function updateSearchControls(query) {
+      els.closeSearch.hidden = !query;
     }
 
     function formatTime(seconds) {
