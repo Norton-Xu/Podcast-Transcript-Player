@@ -1,9 +1,9 @@
-const CACHE_NAME = "philosophize-this-player-shell-v1";
+const CACHE_NAME = "philosophize-this-player-shell-v2";
 const APP_SHELL = [
   "./",
   "./index.html",
   "./manifest.webmanifest",
-  "./app-icon.svg",
+  "./app-icon.png",
 ];
 
 self.addEventListener("install", (event) => {

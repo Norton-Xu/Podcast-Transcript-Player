@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Philosophize This">
   <link rel="manifest" href="./manifest.webmanifest">
-  <link rel="apple-touch-icon" href="./app-icon.svg">
+  <link rel="apple-touch-icon" href="./app-icon.png">
   <title>Podcast Transcript Player</title>
   <style>
     :root {
@@ -450,18 +450,30 @@
 
     .player-head {
       display: grid;
-      grid-template-columns: auto minmax(0, 1fr);
-      gap: 4px;
+      grid-template-columns: 32px minmax(0, 1fr);
+      gap: 0;
       align-items: center;
       min-height: 42px;
     }
 
     #openEpisodes {
       min-height: 40px;
-      width: 40px;
+      width: 32px;
       padding: 0;
       border-radius: 999px;
       font-weight: 760;
+      position: relative;
+    }
+
+    #openEpisodes::after {
+      position: absolute;
+      inset: 0 -6px;
+      content: "";
+    }
+
+    #openEpisodes .symbol {
+      position: relative;
+      z-index: 1;
     }
 
     .player-meta {
@@ -677,6 +689,27 @@
       opacity: 0.72;
     }
 
+    .icon-action.is-pressed,
+    .quick-actions button.is-pressed {
+      transform: scale(0.94);
+      opacity: 0.72;
+    }
+
+    .play-button.is-pressed {
+      transform: scale(0.96);
+      opacity: 0.78;
+    }
+
+    .skip-button.is-pressed {
+      transform: scale(0.94);
+      opacity: 0.78;
+    }
+
+    .episode.is-pressed {
+      background: rgba(255, 255, 255, 0.07);
+      opacity: 0.78;
+    }
+
     button.icon-action {
       border: 0;
       background: transparent;
@@ -756,11 +789,21 @@
       padding: 0;
       border: 0;
       background: transparent;
+      opacity: 0;
+      pointer-events: none;
+      transform: scale(0.84);
+      transition: transform 140ms ease, opacity 140ms ease;
     }
 
     button.search-close {
       border: 0;
       background: transparent;
+    }
+
+    .search-shell.show-clear .search-close {
+      opacity: 1;
+      pointer-events: auto;
+      transform: scale(1);
     }
 
     .symbol {
@@ -802,16 +845,16 @@
     .paragraph {
       max-width: 820px;
       margin: 0 auto 18px;
-      padding: 9px 4px;
-      border-radius: 8px;
+      padding: 12px 16px;
+      border-radius: 14px;
       line-height: 1.72;
       font-size: clamp(17px, 4.35vw, 19px);
-      color: rgba(241, 240, 236, 0.8);
+      color: rgba(241, 240, 236, 0.62);
       transition: background 120ms ease, color 120ms ease;
     }
 
     .paragraph.current {
-      background: rgba(255, 255, 255, 0.035);
+      background: rgba(255, 255, 255, 0.11);
       color: rgba(255, 255, 255, 0.98);
       box-shadow: none;
     }
@@ -885,8 +928,7 @@
         min-height: 58px;
       }
 
-      .icon-action,
-      #openEpisodes {
+      .icon-action {
         width: 44px;
         min-height: 44px;
       }
@@ -964,7 +1006,7 @@
               <svg class="symbol" viewBox="0 0 256 256" aria-hidden="true"><path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"></path></svg>
             </button>
             <input id="search" type="search" aria-label="Search transcript" placeholder="Search">
-            <button id="closeSearch" type="button" class="ghost icon-action search-close" aria-label="Clear search" title="Clear search" hidden>
+            <button id="closeSearch" type="button" class="ghost icon-action search-close" aria-label="Clear search" title="Clear search">
               <svg class="symbol" viewBox="0 0 256 256" aria-hidden="true"><path d="M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z"></path></svg>
             </button>
           </div>
@@ -1067,6 +1109,7 @@
 
     hydrateSettings();
     bindEvents();
+    bindPressFeedback();
     hydrateCachedSelection();
     hydrateCachedFeed();
     loadFeed();
@@ -1216,6 +1259,9 @@
         const enabled = !isFollowEnabled();
         setFollowEnabled(enabled);
         saveState({ followAudio: enabled });
+        if (enabled && currentParagraphIndex >= 0) {
+          scrollToParagraph(currentParagraphIndex, true);
+        }
       });
 
       els.openSearch.addEventListener("click", () => {
@@ -1223,6 +1269,9 @@
       });
 
       els.closeSearch.addEventListener("click", clearSearch);
+      els.closeSearch.addEventListener("pointerdown", (event) => event.preventDefault());
+      els.search.addEventListener("focus", () => updateSearchControls(els.search.value.trim(), true));
+      els.search.addEventListener("blur", () => updateSearchControls(els.search.value.trim()));
 
       els.playPause.addEventListener("click", async () => {
         if (!els.audio.src) return;
@@ -1272,6 +1321,30 @@
         applySearch(query);
       });
 
+    }
+
+    function bindPressFeedback() {
+      let pressedButton = null;
+      let releaseTimer = null;
+
+      const release = () => {
+        if (!pressedButton) return;
+        const button = pressedButton;
+        pressedButton = null;
+        window.clearTimeout(releaseTimer);
+        releaseTimer = window.setTimeout(() => button.classList.remove("is-pressed"), 90);
+      };
+
+      document.addEventListener("pointerdown", (event) => {
+        const button = event.target.closest?.("button");
+        if (!button || button.disabled) return;
+        window.clearTimeout(releaseTimer);
+        pressedButton?.classList.remove("is-pressed");
+        pressedButton = button;
+        button.classList.add("is-pressed");
+      });
+      document.addEventListener("pointerup", release);
+      document.addEventListener("pointercancel", release);
     }
 
     async function loadFeed({ force = false } = {}) {
@@ -1898,8 +1971,8 @@
       applySearch("");
     }
 
-    function updateSearchControls(query) {
-      els.closeSearch.hidden = !query;
+    function updateSearchControls(query, isFocused = false) {
+      els.searchShell.classList.toggle("show-clear", Boolean(query) || isFocused);
     }
 
     function formatTime(seconds) {
