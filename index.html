@@ -1110,6 +1110,7 @@
     hydrateSettings();
     bindEvents();
     bindPressFeedback();
+    setupMediaSession();
     hydrateCachedSelection();
     hydrateCachedFeed();
     loadFeed();
@@ -1176,6 +1177,7 @@
         updatePlayerProgress();
       }
 
+      updateMediaSessionMetadata();
       renderTranscript(cachedText);
       setStatus("Loaded cached transcript.");
     }
@@ -1307,11 +1309,18 @@
         updatePlayerProgress();
       });
       els.audio.addEventListener("durationchange", updatePlayerProgress);
-      els.audio.addEventListener("play", updatePlayButton);
-      els.audio.addEventListener("pause", updatePlayButton);
+      els.audio.addEventListener("play", () => {
+        updatePlayButton();
+        updateMediaSessionPlayback();
+      });
+      els.audio.addEventListener("pause", () => {
+        updatePlayButton();
+        updateMediaSessionPlayback();
+      });
       els.audio.addEventListener("ended", () => {
         savePlaybackProgress({ completed: true });
         updatePlayButton();
+        updateMediaSessionPlayback();
         renderEpisodes();
       });
 
@@ -1345,6 +1354,61 @@
       });
       document.addEventListener("pointerup", release);
       document.addEventListener("pointercancel", release);
+    }
+
+    function setupMediaSession() {
+      if (!("mediaSession" in navigator)) return;
+
+      const handlers = {
+        play: () => els.audio.play().catch(() => {}),
+        pause: () => els.audio.pause(),
+        seekbackward: () => seekBy(-15),
+        seekforward: () => seekBy(15),
+        seekto: (details) => {
+          if (!Number.isFinite(details.seekTime) || !Number.isFinite(els.audio.duration)) return;
+          els.audio.currentTime = Math.min(els.audio.duration, Math.max(0, details.seekTime));
+          updatePlayerProgress();
+          updateHighlight();
+        },
+      };
+
+      Object.entries(handlers).forEach(([action, handler]) => {
+        try {
+          navigator.mediaSession.setActionHandler(action, handler);
+        } catch {
+          // Individual actions vary across iOS browser versions.
+        }
+      });
+    }
+
+    function updateMediaSessionMetadata() {
+      if (!("mediaSession" in navigator) || !selectedEpisode || !("MediaMetadata" in window)) return;
+
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: selectedEpisode.displayTitle || selectedEpisode.title,
+        artist: "Philosophize This!",
+        album: "Transcript Player",
+        artwork: [{ src: new URL("./app-icon.png", window.location.href).href, sizes: "512x512", type: "image/png" }],
+      });
+    }
+
+    function updateMediaSessionPlayback() {
+      if (!("mediaSession" in navigator)) return;
+
+      const duration = Number.isFinite(els.audio.duration) && els.audio.duration > 0 ? els.audio.duration : 0;
+      const current = Number.isFinite(els.audio.currentTime) ? els.audio.currentTime : 0;
+      navigator.mediaSession.playbackState = !els.audio.paused && !els.audio.ended ? "playing" : "paused";
+
+      if (!duration || typeof navigator.mediaSession.setPositionState !== "function") return;
+      try {
+        navigator.mediaSession.setPositionState({
+          duration,
+          position: Math.min(duration, Math.max(0, current)),
+          playbackRate: els.audio.playbackRate || 1,
+        });
+      } catch {
+        // Position reporting is optional and can reject an incomplete duration.
+      }
     }
 
     async function loadFeed({ force = false } = {}) {
@@ -1580,6 +1644,7 @@
       els.audio.load();
       updatePlayButton();
       updatePlayerProgress();
+      updateMediaSessionMetadata();
       clearSearch();
       closeEpisodeDrawer();
 
@@ -1963,6 +2028,7 @@
       els.progress.style.setProperty("--progress", `${progress / 10}%`);
       els.currentTime.textContent = formatTime(current);
       els.remainingTime.textContent = duration ? `-${formatTime(Math.max(0, duration - current))}` : "--:--";
+      updateMediaSessionPlayback();
     }
 
     function clearSearch() {

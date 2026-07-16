@@ -17,6 +17,7 @@ Static mobile player for listening to Philosophize This! with transcript reading
 - Keeps newer audio-only episodes visible in the list.
 - Falls back to public CORS/readability endpoints if direct browser fetching is blocked.
 - Loads audio through the browser audio element behind a custom mobile-friendly player.
+- Integrates with supported system media controls for episode metadata, progress, and 15-second seek actions.
 - Extracts transcript paragraphs from the episode transcript page.
 - Highlights the current paragraph based on playback progress and paragraph text length.
 - Saves the current episode, playback time, settings, loaded transcripts, RSS feed, and transcript index in browser storage.
