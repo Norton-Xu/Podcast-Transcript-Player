@@ -859,6 +859,15 @@
       box-shadow: none;
     }
 
+    .transcript.calibration-armed .paragraph {
+      cursor: crosshair;
+    }
+
+    .paragraph.calibration-flash {
+      background: var(--accent-soft);
+      color: var(--accent-strong);
+    }
+
     mark.search-match {
       padding: 0 1px;
       border-radius: 4px;
@@ -974,7 +983,7 @@
 
           <div class="actions">
             <button id="toggleManual" class="secondary" type="button">Paste transcript</button>
-            <button id="clearSync" class="secondary" type="button">Clear sync</button>
+            <button id="resetCalibration" class="secondary" type="button">Reset calibration</button>
           </div>
 
           <div id="manualBox" class="manual">
@@ -1010,6 +1019,9 @@
               <svg class="symbol" viewBox="0 0 256 256" aria-hidden="true"><path d="M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z"></path></svg>
             </button>
           </div>
+          <button id="calibrate" type="button" class="ghost icon-action" aria-label="Calibrate transcript position" aria-pressed="false" title="Calibrate transcript">
+            <svg class="symbol" viewBox="0 0 256 256" aria-hidden="true"><path d="M184,24H72a8,8,0,0,0-8,8V88L32.58,119.43A8,8,0,0,0,32,130.74V144a8,8,0,0,0,8,8h80v80a8,8,0,0,0,16,0V152h80a8,8,0,0,0,8-8V130.74a8,8,0,0,0-.58-11.31L192,88V32A8,8,0,0,0,184,24Zm-8,70.63,31.69,31.68V136H48v-9.69L80,94.63V40h96Z"></path></svg>
+          </button>
           <button id="follow" type="button" class="ghost icon-action active" aria-label="Follow audio" aria-pressed="true" title="Follow audio">
             <svg class="symbol" viewBox="0 0 256 256" aria-hidden="true"><path d="M232,120h-8.34A96.14,96.14,0,0,0,136,32.34V24a8,8,0,0,0-16,0v8.34A96.14,96.14,0,0,0,32.34,120H24a8,8,0,0,0,0,16h8.34A96.14,96.14,0,0,0,120,223.66V232a8,8,0,0,0,16,0v-8.34A96.14,96.14,0,0,0,223.66,136H232a8,8,0,0,0,0-16Zm-96,87.6V200a8,8,0,0,0-16,0v7.6A80.15,80.15,0,0,1,48.4,136H56a8,8,0,0,0,0-16H48.4A80.15,80.15,0,0,1,120,48.4V56a8,8,0,0,0,16,0V48.4A80.15,80.15,0,0,1,207.6,120H200a8,8,0,0,0,0,16h7.6A80.15,80.15,0,0,1,136,207.6ZM128,88a40,40,0,1,0,40,40A40,40,0,0,0,128,88Zm0,64a24,24,0,1,1,24-24A24,24,0,0,1,128,152Z"></path></svg>
           </button>
@@ -1070,7 +1082,7 @@
       outroOffset: document.getElementById("outroOffset"),
       loadFeed: document.getElementById("loadFeed"),
       toggleManual: document.getElementById("toggleManual"),
-      clearSync: document.getElementById("clearSync"),
+      resetCalibration: document.getElementById("resetCalibration"),
       manualBox: document.getElementById("manualBox"),
       manualTranscript: document.getElementById("manualTranscript"),
       useManual: document.getElementById("useManual"),
@@ -1094,6 +1106,7 @@
       searchShell: document.getElementById("searchShell"),
       search: document.getElementById("search"),
       follow: document.getElementById("follow"),
+      calibrate: document.getElementById("calibrate"),
     };
 
     let state = loadState();
@@ -1104,6 +1117,7 @@
     let paragraphs = [];
     let paragraphTimeline = [];
     let currentParagraphIndex = -1;
+    let calibrationArmed = false;
     let lastSavedAt = 0;
     let drawerTouchStart = null;
 
@@ -1221,14 +1235,15 @@
         els.manualBox.classList.toggle("open");
       });
 
-      els.clearSync.addEventListener("click", () => {
+      els.resetCalibration.addEventListener("click", () => {
         if (!selectedEpisode) return;
-        const syncPoints = { ...(state.syncPoints || {}) };
-        delete syncPoints[selectedEpisode.id];
-        saveState({ syncPoints });
+        const calibrationPoints = { ...(state.calibrationPoints || {}) };
+        delete calibrationPoints[selectedEpisode.id];
+        saveState({ calibrationPoints });
+        setCalibrationArmed(false);
         currentParagraphIndex = -1;
         updateHighlight();
-        setStatus("Cleared sync points for this episode.");
+        setStatus("Reset transcript calibration for this episode.");
       });
 
       els.useManual.addEventListener("click", () => {
@@ -1264,6 +1279,28 @@
         if (enabled && currentParagraphIndex >= 0) {
           scrollToParagraph(currentParagraphIndex, true);
         }
+      });
+
+      els.calibrate.addEventListener("click", () => {
+        if (!selectedEpisode || !paragraphs.length || !Number.isFinite(els.audio.currentTime)) {
+          setStatus("Load an episode transcript before calibrating.", true);
+          return;
+        }
+        setCalibrationArmed(!calibrationArmed);
+        setStatus(calibrationArmed ? "Tap the word currently being spoken." : "Calibration cancelled.");
+      });
+
+      els.transcript.addEventListener("click", (event) => {
+        if (!calibrationArmed) return;
+        const textProgress = textProgressForPointer(event);
+        if (!Number.isFinite(textProgress)) return;
+
+        addCalibrationPoint(els.audio.currentTime, textProgress);
+        setCalibrationArmed(false);
+        currentParagraphIndex = -1;
+        updateHighlight();
+        flashCalibrationParagraph(paragraphIndexForProgress(textProgress));
+        setStatus("Transcript position calibrated.");
       });
 
       els.openSearch.addEventListener("click", () => {
@@ -1626,6 +1663,7 @@
     async function selectEpisode(episode) {
       selectedEpisode = episode;
       currentParagraphIndex = -1;
+      setCalibrationArmed(false);
       const transcriptUrl = buildTranscriptUrl(episode);
       saveState({
         selectedEpisodeId: episode.id,
@@ -1864,18 +1902,27 @@
       const contentDuration = Math.max(1, els.audio.duration - intro - outro);
       const contentTime = Math.min(contentDuration, Math.max(0, els.audio.currentTime - intro));
       const timeProgress = contentTime / contentDuration;
-      const syncPoints = getSyncPoints();
+      const calibrationPoints = getCalibrationPoints();
 
-      if (!syncPoints.length) return timeProgress;
+      if (!calibrationPoints.length) return timeProgress;
 
       const anchors = [
         { timeProgress: 0, textProgress: 0 },
-        ...syncPoints.map((point) => ({
+        ...calibrationPoints.map((point) => ({
           timeProgress: Math.min(1, Math.max(0, (point.time - intro) / contentDuration)),
-          textProgress: paragraphProgress(point.index),
+          textProgress: Math.min(1, Math.max(0, point.textProgress)),
         })),
         { timeProgress: 1, textProgress: 1 },
-      ].sort((a, b) => a.timeProgress - b.timeProgress);
+      ].sort((a, b) => a.timeProgress - b.timeProgress)
+        .reduce((unique, anchor) => {
+          const previous = unique[unique.length - 1];
+          if (previous && Math.abs(previous.timeProgress - anchor.timeProgress) < 0.0001) {
+            unique[unique.length - 1] = anchor;
+          } else {
+            unique.push(anchor);
+          }
+          return unique;
+        }, []);
 
       for (let index = 0; index < anchors.length - 1; index += 1) {
         const left = anchors[index];
@@ -1897,55 +1944,88 @@
       return found >= 0 ? found : paragraphTimeline.length - 1;
     }
 
-    function paragraphProgress(index) {
-      const entry = paragraphTimeline[Math.min(paragraphTimeline.length - 1, Math.max(0, index))];
-      return entry ? entry.midpoint : 0;
+    function setCalibrationArmed(enabled) {
+      calibrationArmed = Boolean(enabled);
+      els.calibrate.classList.toggle("active", calibrationArmed);
+      els.calibrate.setAttribute("aria-pressed", String(calibrationArmed));
+      els.transcript.classList.toggle("calibration-armed", calibrationArmed);
     }
 
-    function syncHere() {
-      if (!selectedEpisode || !paragraphs.length || !Number.isFinite(els.audio.currentTime)) return;
-      const index = centeredParagraphIndex();
-      const nextPoint = { time: els.audio.currentTime, index };
-      const syncPoints = [...getSyncPoints(), nextPoint]
-        .sort((a, b) => a.time - b.time)
-        .filter((point, pointIndex, all) => {
-          const next = all[pointIndex + 1];
-          return !next || Math.abs(next.time - point.time) > 3;
-        });
+    function getCalibrationPoints() {
+      if (!selectedEpisode) return [];
+      const points = state.calibrationPoints?.[selectedEpisode.id];
+      if (!Array.isArray(points)) return [];
+      return points
+        .filter((point) => Number.isFinite(point?.time) && Number.isFinite(point?.textProgress))
+        .sort((left, right) => left.time - right.time);
+    }
 
+    function addCalibrationPoint(time, textProgress) {
+      if (!selectedEpisode) return;
+      const replacementWindowSeconds = 4;
+      const nextPoint = {
+        time: Math.max(0, time),
+        textProgress: Math.min(1, Math.max(0, textProgress)),
+      };
+      const points = getCalibrationPoints();
+      const matchingIndex = points.findIndex((point) => Math.abs(point.time - nextPoint.time) <= replacementWindowSeconds);
+
+      if (matchingIndex >= 0) {
+        points[matchingIndex] = nextPoint;
+      } else {
+        points.push(nextPoint);
+      }
+
+      points.sort((left, right) => left.time - right.time);
       saveState({
-        syncPoints: {
-          ...(state.syncPoints || {}),
-          [selectedEpisode.id]: syncPoints,
+        calibrationPoints: {
+          ...(state.calibrationPoints || {}),
+          [selectedEpisode.id]: points,
         },
       });
-
-      currentParagraphIndex = -1;
-      updateHighlight();
-      setStatus(`Synced this time to paragraph ${index + 1}.`);
     }
 
-    function getSyncPoints() {
-      if (!selectedEpisode) return [];
-      return Array.isArray(state.syncPoints?.[selectedEpisode.id]) ? state.syncPoints[selectedEpisode.id] : [];
+    function textProgressForPointer(event) {
+      const paragraph = event.target.closest?.(".paragraph");
+      if (!paragraph) return Number.NaN;
+      const index = Number(paragraph.dataset.index);
+      const entry = paragraphTimeline[index];
+      const textLength = (paragraph.textContent || "").length;
+      if (!entry || !textLength) return Number.NaN;
+
+      const caret = caretAtPoint(event.clientX, event.clientY);
+      if (!caret || !(paragraph === caret.node || paragraph.contains(caret.node))) {
+        return entry.midpoint;
+      }
+
+      try {
+        const range = document.createRange();
+        range.selectNodeContents(paragraph);
+        range.setEnd(caret.node, caret.offset);
+        const characterOffset = Math.min(textLength, Math.max(0, range.toString().length));
+        return entry.start + (characterOffset / textLength) * (entry.end - entry.start);
+      } catch {
+        return entry.midpoint;
+      }
     }
 
-    function centeredParagraphIndex() {
-      const centerY = els.transcript.getBoundingClientRect().top + els.transcript.clientHeight / 2;
-      let closestIndex = currentParagraphIndex >= 0 ? currentParagraphIndex : 0;
-      let closestDistance = Infinity;
+    function caretAtPoint(x, y) {
+      if (typeof document.caretPositionFromPoint === "function") {
+        const position = document.caretPositionFromPoint(x, y);
+        if (position) return { node: position.offsetNode, offset: position.offset };
+      }
+      if (typeof document.caretRangeFromPoint === "function") {
+        const range = document.caretRangeFromPoint(x, y);
+        if (range) return { node: range.startContainer, offset: range.startOffset };
+      }
+      return null;
+    }
 
-      els.transcript.querySelectorAll(".paragraph").forEach((node) => {
-        const rect = node.getBoundingClientRect();
-        const nodeCenter = rect.top + rect.height / 2;
-        const distance = Math.abs(nodeCenter - centerY);
-        if (distance < closestDistance) {
-          closestDistance = distance;
-          closestIndex = Number(node.dataset.index);
-        }
-      });
-
-      return closestIndex;
+    function flashCalibrationParagraph(index) {
+      const element = paragraphElement(index);
+      if (!element) return;
+      element.classList.add("calibration-flash");
+      window.setTimeout(() => element.classList.remove("calibration-flash"), 520);
     }
 
     function scrollToParagraph(index, force) {

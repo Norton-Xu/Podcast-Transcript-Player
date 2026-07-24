@@ -10,6 +10,7 @@ Static mobile player for listening to Philosophize This! with transcript reading
 - Main controls use a touch-friendly player with 15-second circular seek controls, a centered play button, and a large progress slider.
 - Search stays visible below the title; every matching word or phrase is highlighted inline in the transcript.
 - Follow audio is a simple on/off icon toggle beside search.
+- Use the pin icon beside Follow to calibrate the transcript: tap it, then tap the word currently being spoken. Multiple saved anchors keep the approximate follow position aligned across an episode.
 - Uses the fixed RSS feed: `https://feeds.megaphone.fm/QCD6036500916`.
 - Reads the transcript directory: `https://www.philosophizethis.org/transcripts`.
 - Matches audio and transcript by episode number.
@@ -35,11 +36,12 @@ The visible options are intentionally small:
 - Outro offset, sec
 - Paste transcript manually, used if the browser blocks automatic transcript loading
 - Follow audio toggle near the transcript search box
+- Reset the current episode's manual transcript calibration
 
 ## Limits
 
 - This is still a static HTML page. It uses public fallback endpoints as a prototype convenience, which is less reliable than your own small proxy API.
-- Highlighting is approximate. It maps audio progress to transcript paragraph position, improved by text length; it is not timestamp-level sync.
+- Highlighting is approximate. Manual anchors improve alignment, but it is not timestamp-level or word-level sync.
 - iOS browsers require a manual tap to start audio playback.
 - Cached content is local to the current browser and device. It does not sync between devices.
 - Audio files and newly opened transcripts still need a network connection; the PWA cache deliberately avoids downloading large podcast audio automatically.
