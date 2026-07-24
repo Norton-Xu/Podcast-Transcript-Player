@@ -1313,6 +1313,7 @@
       els.search.addEventListener("blur", () => updateSearchControls(els.search.value.trim()));
 
       els.playPause.addEventListener("click", async () => {
+        restoreAudioSessionIfNeeded();
         if (!els.audio.src) return;
         try {
           if (els.audio.paused) {
@@ -1359,6 +1360,16 @@
         updatePlayButton();
         updateMediaSessionPlayback();
         renderEpisodes();
+      });
+
+      window.addEventListener("pagehide", () => savePlaybackProgress({ force: true }));
+      window.addEventListener("pageshow", () => restoreAudioSessionIfNeeded());
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "hidden") {
+          savePlaybackProgress({ force: true });
+        } else {
+          window.setTimeout(restoreAudioSessionIfNeeded, 0);
+        }
       });
 
       els.search.addEventListener("input", () => {
@@ -2056,10 +2067,10 @@
         : null;
     }
 
-    function savePlaybackProgress({ completed = false } = {}) {
+    function savePlaybackProgress({ completed = false, force = false } = {}) {
       if (!selectedEpisode) return;
       const now = Date.now();
-      if (!completed && now - lastSavedAt < 1500) return;
+      if (!force && !completed && now - lastSavedAt < 1500) return;
       lastSavedAt = now;
       const currentTime = Number.isFinite(els.audio.currentTime) ? els.audio.currentTime : 0;
       saveState({
@@ -2083,6 +2094,30 @@
       const savedTime = state.playback?.[selectedEpisode.id];
       if (Number.isFinite(savedTime) && savedTime > 0 && savedTime < els.audio.duration - 5) {
         els.audio.currentTime = savedTime;
+      }
+    }
+
+    function restoreAudioSessionIfNeeded() {
+      const audioUrl = selectedEpisode?.audioUrl || state.selectedEpisodeSnapshot?.audioUrl;
+      if (!audioUrl) return;
+
+      const expectedUrl = new URL(audioUrl, window.location.href).href;
+      const currentUrl = els.audio.currentSrc || els.audio.src;
+      const hasLostSource = !currentUrl
+        || currentUrl !== expectedUrl
+        || els.audio.networkState === HTMLMediaElement.NETWORK_EMPTY
+        || els.audio.readyState === HTMLMediaElement.HAVE_NOTHING;
+
+      if (hasLostSource) {
+        els.audio.src = audioUrl;
+        els.audio.load();
+        updatePlayButton();
+        return;
+      }
+
+      if (Number.isFinite(els.audio.duration) && els.audio.duration > 0) {
+        restorePlaybackProgress();
+        updatePlayerProgress();
       }
     }
 

@@ -1,4 +1,4 @@
-const CACHE_NAME = "philosophize-this-player-shell-v3";
+const CACHE_NAME = "philosophize-this-player-shell-v4";
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -27,14 +27,18 @@ self.addEventListener("fetch", (event) => {
   if (url.origin !== self.location.origin) return;
 
   event.respondWith(
-    fetch(event.request)
-      .then((response) => {
-        if (response.ok) {
-          const copy = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
-        }
-        return response;
-      })
-      .catch(() => caches.match(event.request)),
+    caches.match(event.request).then((cached) => {
+      const network = fetch(event.request)
+        .then((response) => {
+          if (response.ok) {
+            const copy = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+          }
+          return response;
+        })
+        .catch(() => cached || Response.error());
+
+      return cached || network;
+    }),
   );
 });
