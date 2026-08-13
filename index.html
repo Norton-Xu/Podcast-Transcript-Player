@@ -2071,8 +2071,14 @@
       if (!selectedEpisode) return;
       const now = Date.now();
       if (!force && !completed && now - lastSavedAt < 1500) return;
-      lastSavedAt = now;
       const currentTime = Number.isFinite(els.audio.currentTime) ? els.audio.currentTime : 0;
+      const existing = getListeningProgress(selectedEpisode.id);
+
+      // iOS can empty an audio element while the page is backgrounded. Never let
+      // that transient 0:00 overwrite a real resume point.
+      if (!completed && currentTime < 1 && existing?.time > 1) return;
+
+      lastSavedAt = now;
       saveState({
         playback: {
           ...(state.playback || {}),
@@ -2112,13 +2118,11 @@
         els.audio.src = audioUrl;
         els.audio.load();
         updatePlayButton();
-        return;
       }
 
-      if (Number.isFinite(els.audio.duration) && els.audio.duration > 0) {
-        restorePlaybackProgress();
-        updatePlayerProgress();
-      }
+      // Do not reset a healthy, still-playing audio element to its last saved
+      // position. That produced a noticeable jump every time iOS returned here.
+      updatePlayerProgress();
     }
 
     function updatePlayButton() {
