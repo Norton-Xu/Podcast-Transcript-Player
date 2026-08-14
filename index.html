@@ -1120,6 +1120,7 @@
     let calibrationArmed = false;
     let lastSavedAt = 0;
     let drawerTouchStart = null;
+    let feedRefreshInFlight = false;
 
     hydrateSettings();
     bindEvents();
@@ -1170,7 +1171,7 @@
       const selectedId = state.selectedEpisodeId;
       const cacheKey = snapshot?.id || selectedId;
       const cachedText = cacheKey ? state.transcriptCache?.[cacheKey] : "";
-      if (!cachedText) return;
+      if (!snapshot && !selectedId) return;
 
       selectedEpisode = snapshot || {
         id: selectedId,
@@ -1192,8 +1193,13 @@
       }
 
       updateMediaSessionMetadata();
-      renderTranscript(cachedText);
-      setStatus("Loaded cached transcript.");
+      if (cachedText) {
+        renderTranscript(cachedText);
+        setStatus("Loaded cached transcript.");
+      } else {
+        renderEmpty("Loading transcript...");
+        setStatus("Restored cached episode.");
+      }
     }
 
     function hydrateCachedFeed() {
@@ -1344,9 +1350,13 @@
 
       els.audio.addEventListener("loadedmetadata", () => {
         restorePlaybackProgress();
+        saveAudioDuration();
         updatePlayerProgress();
       });
-      els.audio.addEventListener("durationchange", updatePlayerProgress);
+      els.audio.addEventListener("durationchange", () => {
+        saveAudioDuration();
+        updatePlayerProgress();
+      });
       els.audio.addEventListener("play", () => {
         updatePlayButton();
         updateMediaSessionPlayback();
@@ -1470,7 +1480,8 @@
 
       try {
         const transcriptIndexPromise = loadTranscriptIndex({ force });
-        const cachedFeed = !force && freshCache(state.feedCache, FEED_CACHE_MAX_AGE_MS);
+        const cachedFeed = !force ? state.feedCache : null;
+        const hasFreshFeed = Boolean(freshCache(cachedFeed, FEED_CACHE_MAX_AGE_MS));
         let xml = cachedFeed?.xml || "";
         if (!xml) {
           xml = await fetchText(PODCAST_RSS_URL, "RSS");
@@ -1483,19 +1494,35 @@
 
         const savedId = state.selectedEpisodeId;
         const savedEpisode = episodes.find((episode) => episode.id === savedId);
-        if (savedEpisode && selectedEpisode?.id !== savedEpisode.id) {
+        if (savedEpisode && (selectedEpisode?.id !== savedEpisode.id || !paragraphs.length)) {
           selectEpisode(savedEpisode);
         } else if (!selectedEpisode && episodes[0]) {
           // On a true first visit, start useful work as soon as RSS arrives.
           selectEpisode(episodes[0]);
         }
 
+        if (cachedFeed && !hasFreshFeed) void refreshFeedInBackground();
         await transcriptIndexPromise;
         renderEpisodes();
       } catch (error) {
         setStatus(`${error.message}. If this is a CORS error, this static version needs a tiny proxy later.`, true);
       } finally {
         els.loadFeed.disabled = false;
+      }
+    }
+
+    async function refreshFeedInBackground() {
+      if (feedRefreshInFlight) return;
+      feedRefreshInFlight = true;
+      try {
+        const xml = await fetchText(PODCAST_RSS_URL, "RSS");
+        saveState({ feedCache: { xml, savedAt: Date.now() } });
+        episodes = sortEpisodesAscending(parseRss(xml));
+        renderEpisodes();
+      } catch (error) {
+        console.warn("Could not refresh the episode list in the background.", error);
+      } finally {
+        feedRefreshInFlight = false;
       }
     }
 
@@ -1521,11 +1548,11 @@
     }
 
     async function loadTranscriptIndex({ force = false } = {}) {
-      const cachedIndex = !force && freshCache(state.transcriptIndexCache, TRANSCRIPT_INDEX_CACHE_MAX_AGE_MS);
+      const cachedIndex = !force ? state.transcriptIndexCache : null;
       if (cachedIndex?.map && typeof cachedIndex.map === "object") {
         transcriptMap = cachedIndex.map;
         transcriptIndexLoaded = true;
-        return;
+        if (freshCache(cachedIndex, TRANSCRIPT_INDEX_CACHE_MAX_AGE_MS)) return;
       }
 
       try {
@@ -1534,6 +1561,7 @@
         transcriptIndexLoaded = true;
         saveState({ transcriptIndexCache: { map: transcriptMap, savedAt: Date.now() } });
       } catch {
+        if (transcriptIndexLoaded) return;
         transcriptMap = {};
         transcriptIndexLoaded = false;
       }
@@ -1689,8 +1717,12 @@
       els.episodeDate.textContent = formatDate(episode.pubDate) || "No date";
       els.episodeNumber.textContent = episode.episodeNumber ? `Episode ${episode.episodeNumber}` : "No episode number found";
       setOptionalLink(els.sourceLink, episode.link);
-      els.audio.src = episode.audioUrl;
-      els.audio.load();
+      const expectedAudioUrl = new URL(episode.audioUrl, window.location.href).href;
+      const currentAudioUrl = els.audio.currentSrc || els.audio.src;
+      if (currentAudioUrl !== expectedAudioUrl) {
+        els.audio.src = episode.audioUrl;
+        els.audio.load();
+      }
       updatePlayButton();
       updatePlayerProgress();
       updateMediaSessionMetadata();
@@ -2067,12 +2099,24 @@
         : null;
     }
 
+    function getCachedPlaybackSnapshot(episodeId) {
+      const progress = state.listeningProgress?.[episodeId];
+      if (progress && typeof progress === "object") return progress;
+
+      const legacyTime = state.playback?.[episodeId];
+      return Number.isFinite(legacyTime) ? { time: legacyTime } : null;
+    }
+
     function savePlaybackProgress({ completed = false, force = false } = {}) {
       if (!selectedEpisode) return;
       const now = Date.now();
       if (!force && !completed && now - lastSavedAt < 1500) return;
       const currentTime = Number.isFinite(els.audio.currentTime) ? els.audio.currentTime : 0;
       const existing = getListeningProgress(selectedEpisode.id);
+      const existingSnapshot = getCachedPlaybackSnapshot(selectedEpisode.id);
+      const duration = Number.isFinite(els.audio.duration) && els.audio.duration > 0
+        ? els.audio.duration
+        : existingSnapshot?.duration;
 
       // iOS can empty an audio element while the page is backgrounded. Never let
       // that transient 0:00 overwrite a real resume point.
@@ -2087,8 +2131,10 @@
         listeningProgress: {
           ...(state.listeningProgress || {}),
           [selectedEpisode.id]: {
+            ...existingSnapshot,
             time: currentTime,
             completed,
+            duration,
             savedAt: now,
           },
         },
@@ -2101,6 +2147,23 @@
       if (Number.isFinite(savedTime) && savedTime > 0 && savedTime < els.audio.duration - 5) {
         els.audio.currentTime = savedTime;
       }
+    }
+
+    function saveAudioDuration() {
+      if (!selectedEpisode || !Number.isFinite(els.audio.duration) || els.audio.duration <= 0) return;
+      const existing = getCachedPlaybackSnapshot(selectedEpisode.id) || {};
+      if (Math.abs((existing.duration || 0) - els.audio.duration) < 0.5) return;
+
+      saveState({
+        listeningProgress: {
+          ...(state.listeningProgress || {}),
+          [selectedEpisode.id]: {
+            ...existing,
+            duration: els.audio.duration,
+            savedAt: existing.savedAt || Date.now(),
+          },
+        },
+      });
     }
 
     function restoreAudioSessionIfNeeded() {
@@ -2140,8 +2203,12 @@
     }
 
     function updatePlayerProgress() {
-      const duration = Number.isFinite(els.audio.duration) && els.audio.duration > 0 ? els.audio.duration : 0;
-      const current = Number.isFinite(els.audio.currentTime) ? els.audio.currentTime : 0;
+      const mediaDuration = Number.isFinite(els.audio.duration) && els.audio.duration > 0 ? els.audio.duration : 0;
+      const cached = selectedEpisode ? getCachedPlaybackSnapshot(selectedEpisode.id) : null;
+      const duration = mediaDuration || (Number.isFinite(cached?.duration) ? cached.duration : 0);
+      const current = mediaDuration
+        ? (Number.isFinite(els.audio.currentTime) ? els.audio.currentTime : 0)
+        : Math.min(duration, Math.max(0, Number(cached?.time) || 0));
       const progress = duration ? Math.round((current / duration) * 1000) : 0;
       els.progress.value = String(progress);
       els.progress.style.setProperty("--progress", `${progress / 10}%`);
