@@ -1533,10 +1533,17 @@
       savePlaybackProgress();
       renderEpisodes();
       document.body.classList.add("drawer-open");
+      window.requestAnimationFrame(scrollDrawerToCurrentEpisode);
     }
 
     function closeEpisodeDrawer() {
       document.body.classList.remove("drawer-open");
+    }
+
+    function scrollDrawerToCurrentEpisode() {
+      const currentEpisode = els.episodeList.querySelector(".episode.active");
+      if (!currentEpisode) return;
+      currentEpisode.scrollIntoView({ block: "center", inline: "nearest", behavior: "auto" });
     }
 
     function sortEpisodesAscending(items) {
