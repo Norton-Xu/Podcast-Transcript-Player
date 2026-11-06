@@ -1,4 +1,4 @@
-const CACHE_NAME = "philosophize-this-player-shell-v4";
+const CACHE_NAME = "philosophize-this-player-shell-v5";
 const APP_SHELL = [
   "./",
   "./index.html",

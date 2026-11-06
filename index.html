@@ -1550,14 +1550,14 @@
     async function loadTranscriptIndex({ force = false } = {}) {
       const cachedIndex = !force ? state.transcriptIndexCache : null;
       if (cachedIndex?.map && typeof cachedIndex.map === "object") {
-        transcriptMap = cachedIndex.map;
+        transcriptMap = normalizeTranscriptMap(cachedIndex.map);
         transcriptIndexLoaded = true;
         if (freshCache(cachedIndex, TRANSCRIPT_INDEX_CACHE_MAX_AGE_MS)) return;
       }
 
       try {
         const html = await fetchText(TRANSCRIPTS_INDEX_URL, "transcript index");
-        transcriptMap = parseTranscriptIndex(html);
+        transcriptMap = normalizeTranscriptMap(parseTranscriptIndex(html));
         transcriptIndexLoaded = true;
         saveState({ transcriptIndexCache: { map: transcriptMap, savedAt: Date.now() } });
       } catch {
@@ -1592,6 +1592,17 @@
         map[match[2]] = match[3];
       }
       return map;
+    }
+
+    function normalizeTranscriptMap(map) {
+      return Object.fromEntries(
+        Object.entries(map).map(([episodeNumber, url]) => [episodeKey(episodeNumber), url])
+      );
+    }
+
+    function episodeKey(episodeNumber) {
+      const numericValue = Number.parseInt(String(episodeNumber), 10);
+      return Number.isFinite(numericValue) ? String(numericValue) : String(episodeNumber);
     }
 
     function parseRss(xml) {
@@ -1763,13 +1774,14 @@
 
     function buildTranscriptUrl(episode) {
       if (!episode.episodeNumber) return "";
-      if (transcriptMap[episode.episodeNumber]) return transcriptMap[episode.episodeNumber];
+      const key = episodeKey(episode.episodeNumber);
+      if (transcriptMap[key]) return transcriptMap[key];
       if (transcriptIndexLoaded) return "";
       return TRANSCRIPT_FALLBACK_PATTERN.replaceAll("{episode}", episode.episodeNumber);
     }
 
     function hasKnownTranscript(episode) {
-      return Boolean(episode.episodeNumber && transcriptMap[episode.episodeNumber]);
+      return Boolean(episode.episodeNumber && transcriptMap[episodeKey(episode.episodeNumber)]);
     }
 
     async function fetchText(url, label) {
