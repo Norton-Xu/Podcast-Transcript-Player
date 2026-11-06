@@ -1071,9 +1071,11 @@
     const STORAGE_KEY = "podcast-transcript-player-v1";
     const PODCAST_RSS_URL = "https://feeds.megaphone.fm/QCD6036500916";
     const TRANSCRIPTS_INDEX_URL = "https://www.philosophizethis.org/transcripts";
+    const TRANSCRIPT_WORKER_URL = "https://philosophize-transcript-proxy.xpl1223hhh.workers.dev";
     const TRANSCRIPT_FALLBACK_PATTERN = "https://www.philosophizethis.org/transcript/episode-{episode}-transcript";
     const FEED_CACHE_MAX_AGE_MS = 12 * 60 * 60 * 1000;
     const TRANSCRIPT_INDEX_CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+    const TRANSCRIPT_INDEX_CACHE_VERSION = 2;
 
     const els = {
       drawerBackdrop: document.getElementById("drawerBackdrop"),
@@ -1492,6 +1494,8 @@
         renderEpisodes();
         setStatus(cachedFeed ? `Loaded ${episodes.length} cached episodes.` : `Loaded ${episodes.length} episodes.`);
 
+        await transcriptIndexPromise;
+
         const savedId = state.selectedEpisodeId;
         const savedEpisode = episodes.find((episode) => episode.id === savedId);
         if (savedEpisode && (selectedEpisode?.id !== savedEpisode.id || !paragraphs.length)) {
@@ -1502,10 +1506,9 @@
         }
 
         if (cachedFeed && !hasFreshFeed) void refreshFeedInBackground();
-        await transcriptIndexPromise;
         renderEpisodes();
       } catch (error) {
-        setStatus(`${error.message}. If this is a CORS error, this static version needs a tiny proxy later.`, true);
+        setStatus(error.message || "Could not load episode list.", true);
       } finally {
         els.loadFeed.disabled = false;
       }
@@ -1551,15 +1554,23 @@
       const cachedIndex = !force ? state.transcriptIndexCache : null;
       if (cachedIndex?.map && typeof cachedIndex.map === "object") {
         transcriptMap = normalizeTranscriptMap(cachedIndex.map);
-        transcriptIndexLoaded = true;
-        if (freshCache(cachedIndex, TRANSCRIPT_INDEX_CACHE_MAX_AGE_MS)) return;
+        transcriptIndexLoaded = Object.keys(transcriptMap).length > 0;
+        if (transcriptIndexLoaded
+          && cachedIndex.version === TRANSCRIPT_INDEX_CACHE_VERSION
+          && freshCache(cachedIndex, TRANSCRIPT_INDEX_CACHE_MAX_AGE_MS)) return;
       }
 
       try {
         const html = await fetchText(TRANSCRIPTS_INDEX_URL, "transcript index");
         transcriptMap = normalizeTranscriptMap(parseTranscriptIndex(html));
         transcriptIndexLoaded = true;
-        saveState({ transcriptIndexCache: { map: transcriptMap, savedAt: Date.now() } });
+        saveState({
+          transcriptIndexCache: {
+            map: transcriptMap,
+            version: TRANSCRIPT_INDEX_CACHE_VERSION,
+            savedAt: Date.now(),
+          },
+        });
       } catch {
         if (transcriptIndexLoaded) return;
         transcriptMap = {};
@@ -1768,7 +1779,7 @@
         setStatus("Transcript loaded and cached.");
       } catch (error) {
         renderEmpty("Could not load transcript automatically. You can paste it manually from Options.");
-        setStatus(`${error.message}. Browser CORS may be blocking the transcript page.`, true);
+        setStatus(error.message || "Transcript request failed.", true);
       }
     }
 
@@ -1785,11 +1796,8 @@
     }
 
     async function fetchText(url, label) {
-      const urls = [
-        url,
-        `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-        `https://r.jina.ai/http://${url}`,
-      ];
+      const workerUrl = transcriptWorkerUrl(url);
+      const urls = workerUrl ? [workerUrl] : [url];
 
       let lastError = null;
       for (const requestUrl of urls) {
@@ -1803,6 +1811,13 @@
       }
 
       throw lastError || new Error(`${label} request failed`);
+    }
+
+    function transcriptWorkerUrl(url) {
+      const source = new URL(url);
+      const transcriptOrigin = new URL(TRANSCRIPTS_INDEX_URL).origin;
+      if (source.origin !== transcriptOrigin) return "";
+      return new URL(source.pathname, `${TRANSCRIPT_WORKER_URL}/`).href;
     }
 
     function setOptionalLink(element, href) {
